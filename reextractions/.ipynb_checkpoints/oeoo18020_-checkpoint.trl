@@ -1,0 +1,16 @@
+
+*** CALSTIS-6 -- Version 3.4.2 (19-Jan-2018) ***
+Begin    13-Jul-2022 10:52:35 CEST
+
+ERROR    SPTRCTAB `oref$q8l14502o_1dt.fits' not found
+ERROR    SDCTAB `oref$16j1600bo_sdc.fits' not found
+ERROR    XTRACTAB `oref$l3m1437to_1dx.fits' not found
+ERROR    APDESTAB `oref$16j16005o_apd.fits' not found
+ERROR    DISPTAB `oref$m7p16111o_dsp.fits' not found
+ERROR    INANGTAB `oref$l3m1437ro_iac.fits' not found
+ERROR    PHOTTAB `oref$64719314o_pht.fits' not found
+ERROR    APERTAB `oref$y2r1559to_apt.fits' not found
+Warning  Grating-aperture throughput correction table (GACTAB) was not found,
+         and no gac corrections will be applied
+Error processing /media/david/2tb_ext_hd/hddata/meats/hst/k2-18/oeoo18020_flt.fits.
+         Calibration file(s) missing.
