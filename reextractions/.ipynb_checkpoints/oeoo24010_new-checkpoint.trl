@@ -1,0 +1,75 @@
+
+*** CALSTIS-6 -- Version 3.4.2 (19-Jan-2018) ***
+Begin    30-Aug-2022 14:47:57 MDT
+
+INFO     'D1' has been appended to aperture
+Warning  Grating-aperture throughput correction table (GACTAB) was not found,
+         and no gac corrections will be applied
+Input    /media/david/2tb_ext_hd/hddata/meats/hst/toi-421/oeoo24010_flt.fits
+Output   reextractions/oeoo24010_new_x1d.fits
+Rootname oeoo24010
+OBSMODE  TIME-TAG
+APERTURE 52X0.2D1
+OPT_ELEM G140L
+DETECTOR FUV-MAMA
+
+XTRACTAB oref$n7p10323o_1dx.fits
+XTRACTAB PEDIGREE=INFLIGHT 29/05/97
+XTRACTAB DESCRIP =Analysis from prop. 7064 and ground data
+XTRACTAB DESCRIP =Analysis from prop. 7064
+SPTRCTAB oref$q8l14504o_1dt.fits
+SPTRCTAB PEDIGREE=INFLIGHT 27/02/1997 06/02/1999
+SPTRCTAB DESCRIP =New G140L traces and updated Echelle A2CENTER values
+
+Imset 1  Begin 14:47:57 MDT
+         Input read into memory.
+Order 1  Begin 14:47:58 MDT
+X1DCORR  PERFORM
+BACKCORR PERFORM
+******** Calling Slfit ***********BACKCORR COMPLETE
+X1DCORR  COMPLETE
+         Spectrum extracted at y position = 499.701
+
+DISPCORR PERFORM
+DISPTAB  oref$m7p16110o_dsp.fits
+DISPTAB  PEDIGREE=INFLIGHT 04/07/1997 04/07/1997
+DISPTAB  DESCRIP =Dispersion coefficients reference table
+DISPTAB  DESCRIP =INFLIGHT Cal. Disp. Coeffs
+APDESTAB oref$16j16005o_apd.fits
+APDESTAB PEDIGREE=INFLIGHT 01/03/1997 13/06/2017
+APDESTAB DESCRIP =Aligned long-slit bar positions for single-bar cases.--------------
+APDESTAB DESCRIP =Offset relative to row 900
+INANGTAB oref$h1v1541eo_iac.fits
+INANGTAB DESCRIP =Prelaunch Calibration/Lindler and Models
+DISPCORR COMPLETE
+
+HELCORR  PERFORM
+HELCORR  COMPLETE
+
+PHOTTAB  oref$6471930po_pht.fits
+PHOTTAB  PEDIGREE=INFLIGHT 27/02/1997 24/09/2019
+PHOTTAB  DESCRIP =Updated sensitivity curves for G140L and E140M
+APERTAB  oref$y2r1559to_apt.fits
+APERTAB  PEDIGREE=MODEL
+APERTAB  DESCRIP =Added/updated values for 31X0.05NDA,31X0.05NDB,31X0.05NDC apertures
+APERTAB  DESCRIP =Bohlin/Hartig TIM Models Nov. 1998
+PCTAB    oref$y2r16004o_pct.fits
+PCTAB    PEDIGREE=INFLIGHT 18/05/1997 19/12/1998
+PCTAB    DESCRIP =Added/updated values for 31X0.05NDA,31X0.05NDB,31X0.05NDC apertures
+TDSTAB   oref$3ah1528co_tds.fits
+TDSTAB   PEDIGREE=INFLIGHT 01/04/1997 04/07/2019
+TDSTAB   DESCRIP =Updated time and temperature sensitivities for all optical elements.
+FLUXCORR PERFORM
+FLUXCORR COMPLETE
+SGEOCORR OMIT
+
+         Row 1 written to disk.
+Order 1  End 14:47:58 MDT
+
+         trace was rotated by = -0.0701447 degree.
+Imset 1  End 14:47:58 MDT
+
+Warning  Keyword `XTRACALG' is being added to header.
+End      30-Aug-2022 14:47:58 MDT
+
+*** CALSTIS-6 complete ***
