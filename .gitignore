@@ -1,3 +1,5 @@
 *.ecsv
 *.fits
 host_properties.csv
+*.zip
+*.trl
