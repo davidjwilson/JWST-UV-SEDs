@@ -15,12 +15,13 @@ import glob
 
 
 __author__ ='David Wilson, Parke Loyd'
-__version__=5.01
-__date__=20210209
+__version__=6.01
+__date__=20220921
 
 
 """
 BT Settl models are now availabe on the SVO, and are much easier to work with.
+Updating to optionally return an error estimate, based on effective temperature
 """
 
 
@@ -192,30 +193,57 @@ def extract_spectrum(filepath):
         print ('model {} not in repo'.format(os.path.split(filepath)[1]))
         sys.exit(1)
     return w_raw, f_raw
-    
-def make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, plot=False, to_vac=False):
+
+def build_spectrum(repo, star_params, tgrid, ggrig,fgrid, agrid):
     """
-    Main array. Takes a list of stellar parameters and makes a phoenix spectrum out of. Save_path is where you want the final spectrum to go, repo is where downloaded phoenix files go. wave_file is where the wavelength array is 
+    Returns the phoenix spectrum for the given parameters, or interpolates a new one.
     """
-    tgrid, ggrig,fgrid, agrid = get_grids()
     param_list, params_to_interp = make_param_list(star_params, [tgrid, ggrig,fgrid, agrid])
     if len(params_to_interp) == 0: #i.e. if there's an existing model
         print('phoenix model available')
         wavelength, flux = get_existing_model(star_params, repo)
     else:
         param_dicts = make_dicts(param_list)
-        # print(param_dicts)
         spectra = get_models(repo,param_dicts)
         wavelength, flux = interp_flux(spectra, params_to_interp, star_params)
     wavelength, flux = wavelength[wavelength >= 501.0], flux[wavelength >= 501.0] #spectrum does funny things at lambda < 501
+    return wavelength, flux
+    
+def make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, plot=False, to_vac=False, make_error=False):
+    """
+    Main array. Takes a list of stellar parameters and makes a phoenix spectrum out of. Save_path is where you want the final spectrum to go, repo is where downloaded phoenix files go. wave_file is where the wavelength array is 
+    """
+    tgrid, ggrig,fgrid, agrid = get_grids()
+    wavelength, flux = build_spectrum(repo,star_params, tgrid, ggrig,fgrid, agrid)
     normfac = find_normfac(star_params['Radius'], star_params['Distance'])
+    if make_error:
+        teff, teff_e = star_params['Teff'], star_params['Teff_e']
+        star_params['Teff'] = teff+teff_e
+        wave_up, flux_up = build_spectrum(repo,star_params, tgrid, ggrig,fgrid, agrid)
+        star_params['Teff'] = teff-teff_e
+        wave_down, flux_down = build_spectrum(repo, star_params, tgrid, ggrig,fgrid, agrid)
+        star_params['Teff'] = teff
+        if not np.array_equal(wave_up, wavelength): #check if wavelength grids are the same. Should be, but you might get unlucky and hit a grid change
+            flux_up = interp1d(wave_up, flux_up,fill_value='extrapolate')(wavelength)
+        if not np.array_equal(wave_down, wavelength): 
+            flux_down = interp1d(wave_down, flux_down,fill_value='extrapolate')(wavelength)
+        error = np.mean([abs(flux_up-flux), abs(flux-flux_down)], axis=0)
     if to_vac:
         wavelength, flux = air_to_vac(wavelength, flux)
     if save_ecsv:
         save_to_ecsv(star, wavelength, flux, save_path, star_params, normfac)
     if plot == True:
         plot_spectrum(wavelength, flux, star, normfac)
-    return wavelength, flux
+    # print(make_error)
+    if make_error:
+        plt.figure()
+        plt.plot(wavelength, flux, zorder=10)
+        plt.plot(wavelength, flux_up)
+        plt.plot(wavelength, flux_down)
+        plt.show()
+        return wavelength, flux, error
+    else:
+        return wavelength, flux
 
 
 def find_normfac(radius, distance):
@@ -244,7 +272,26 @@ def test_load():
         print('No ecsv files in path')
         
     
+def test2():
+    G = const.G
+    M = const.M_sun.to(u.kg)
+    R = const.R_sun.to(u.m)
+    mass = 1.22
 
-    
-# test()
+    teff = 5675
+    teff_e = 75
+    radius = 1.38
+    distance = (1000/7.8288000)
+    save_path = 'models/'
+    star = 'NGTS_10'
+    g = ((G*mass*M)/(radius*R)**2).to(u.cm/u.s**2)
+    print(np.log10(g.value))
+    repo = '/media/david/2tb_ext_hd/hddata/mega_muscles/data-vacuum/'
+
+    star_params = {'Teff': teff, 'logg': np.log10(g.value), 'FeH': 0.00, 'aM': 0, 'Radius':radius*u.R_sun, 'Distance':distance*u.pc, 'Teff_e':teff_e}
+    pw, pf, pe = make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, plot=False, make_error=True)
+    normfac = ((radius*R)/(distance*u.pc.to(u.m)))**2
+
+
+# test2()
 # test_load() 
