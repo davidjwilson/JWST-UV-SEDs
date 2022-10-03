@@ -4,3 +4,4 @@ host_properties.csv
 *.zip
 *.trl
 *idlsav
+mastDownload/*
