@@ -204,7 +204,7 @@ def make_metadata(x1ds, new_data, normfac):
         start_times.append(hdr['TEXPSTRT'])
         end_times.append(hdr['TEXPEND'])
         dates.append(hdr['TDATEOBS'])
-    meats_name = 'Whatever MEATS STANDS FOR'
+    meats_name = 'MUSCLES Extension for Atmospheric Transmisson Spectroscopy'
     meta_names =  ['TELESCOP', 'INSTRUME','GRATING','APERTURE','TARGNAME','RA_TARG','DEC_TARG','PROPOSID','HLSPNAME','HLSPACRN','HLSPLEAD','PR_INV_L',
                    'PR_INV_F','DATE-OBS','EXPSTART','EXPEND','EXPTIME','EXPDEFN','EXPMIN','EXPMAX','EXPMED','NORMFAC','WAVEMIN','WAVEMAX','WAVEUNIT','AIRORVAC','SPECRES','WAVERES','FLUXMIN',
                   'FLUXMAX','FLUXUNIT']
