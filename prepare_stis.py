@@ -186,7 +186,7 @@ def combine_x1ds(x1ds, correct_error=True):
 
 
  
-def make_metadata(x1ds, new_data, normfac):
+def make_metadata(x1ds, new_data, normfac, star):
     """
     Makes the metadata for the ecsv files- eventually will be converted into the fits file
     """
@@ -204,11 +204,15 @@ def make_metadata(x1ds, new_data, normfac):
         start_times.append(hdr['TEXPSTRT'])
         end_times.append(hdr['TEXPEND'])
         dates.append(hdr['TDATEOBS'])
+        if star == '':
+            starname = hdr['TARGNAME']
+        else:
+            starname = star
     meats_name = 'MUSCLES Extension for Atmospheric Transmisson Spectroscopy'
     meta_names =  ['TELESCOP', 'INSTRUME','GRATING','APERTURE','TARGNAME','RA_TARG','DEC_TARG','PROPOSID','HLSPNAME','HLSPACRN','HLSPLEAD','PR_INV_L',
                    'PR_INV_F','DATE-OBS','EXPSTART','EXPEND','EXPTIME','EXPDEFN','EXPMIN','EXPMAX','EXPMED','NORMFAC','WAVEMIN','WAVEMAX','WAVEUNIT','AIRORVAC','SPECRES','WAVERES','FLUXMIN',
                   'FLUXMAX','FLUXUNIT']
-    meta_fill = ['','',hdr['OPT_ELEM'],'','','','','',meats_name,'MEATS','David J. Wilson','','',min(dates),min(start_times),max(end_times),sum(exptimes),'SUM', 
+    meta_fill = ['','',hdr['OPT_ELEM'],'',starname,'','','',meats_name,'MEATS','David J. Wilson','','',min(dates),min(start_times),max(end_times),sum(exptimes),'SUM', 
                 min(exptimes), max(exptimes), np.median(exptimes),normfac,wavelength[0], wavelength[-1],'ang','vac',specres,waveres,np.min(flux[np.isnan(flux)==False]), np.max(flux[np.isnan(flux)==False]),'erg/s/cm2/ang']
     metadata = {}
     for name, filler in zip(meta_names, meta_fill):
@@ -318,7 +322,7 @@ def make_dataset_extension(x1ds):
     return hdu
 
     
-def make_stis_spectrum(x1dpath, version,savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, sx1 = True):
+def make_stis_spectrum(x1dpath, version,savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, sx1 = True, star = ''):
     """
     main function
     """
@@ -333,7 +337,7 @@ def make_stis_spectrum(x1dpath, version,savepath = '', plot=False, save_ecsv=Fal
         for x1ds in x1ds_by_grating:
             data = combine_x1ds(x1ds)
            # data = [wavelength*u.AA, flux*u.erg/u.s/u.cm**2/u.AA, error*u.erg/u.s/u.cm**2/u.AA, dq]
-            metadata = make_metadata(x1ds, data, normfac)
+            metadata = make_metadata(x1ds, data, normfac, star)
             if plot:
                 plot_spectrum(data, metadata)
             if save_ecsv:
