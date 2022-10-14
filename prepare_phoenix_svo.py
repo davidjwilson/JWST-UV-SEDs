@@ -127,14 +127,18 @@ def interp_flux(spectra, params_to_interp, star_params):
     return wavelength, new_flux
 
     
-def save_to_ecsv(star,wavelength, flux, save_path, star_params, normfac):
+def save_to_ecsv(star,wavelength, flux, error, save_path, star_params, normfac, make_error):
     """
   #  save the new model to an ecsv file
   #  """
     if os.path.exists(save_path) == False:
         os.mkdir(save_path)
-    metadata = {'OBJECT':star, 'TEFF':star_params['Teff'], 'LOGG':star_params['logg'], 'NORMFAC':normfac}
-    savedat = Table([wavelength*u.AA, flux], names=['WAVELENGTH', 'FLUX'], meta=metadata)
+    if make_error:
+        metadata = {'OBJECT':star, 'TEFF':star_params['Teff'], 'TEFF_e':star_params['Teff_e'], 'LOGG':star_params['logg'], 'NORMFAC':normfac}
+        savedat = Table([wavelength*u.AA, flux, error], names=['WAVELENGTH', 'FLUX', 'ERROR'], meta=metadata)
+    else:
+        metadata = {'OBJECT':star, 'TEFF':star_params['Teff'], 'LOGG':star_params['logg'], 'NORMFAC':normfac}
+        savedat = Table([wavelength*u.AA, flux], names=['WAVELENGTH', 'FLUX'], meta=metadata)
     star = star.replace(' ', '')
     #ascii.write(savedat, save_path+star+'_phoenix_interpolated.ecsv', overwrite=True, format='ecsv')
     savedat.write(save_path+star+'_phoenix_interpolated.ecsv', overwrite=True, format='ascii.ecsv')
@@ -215,6 +219,7 @@ def make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, p
     """
     tgrid, ggrig,fgrid, agrid = get_grids()
     wavelength, flux = build_spectrum(repo,star_params, tgrid, ggrig,fgrid, agrid)
+    error = np.zeros(len(flux))
     normfac = find_normfac(star_params['Radius'], star_params['Distance'])
     if make_error:
         teff, teff_e = star_params['Teff'], star_params['Teff_e']
@@ -231,15 +236,17 @@ def make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, p
     if to_vac:
         wavelength, flux = air_to_vac(wavelength, flux)
     if save_ecsv:
-        save_to_ecsv(star, wavelength, flux, save_path, star_params, normfac)
-    if plot == True:
+        save_to_ecsv(star, wavelength, flux, error, save_path, star_params, normfac, make_error)
+    if plot:
         plot_spectrum(wavelength, flux, star, normfac)
     # print(make_error)
-    if make_error:
+    if make_error == True and plot==True:
         plt.figure()
         plt.plot(wavelength, flux, zorder=10)
         plt.plot(wavelength, flux_up)
         plt.plot(wavelength, flux_down)
+        plt.yscale('log')
+        plt.xscale('log')
         plt.show()
         return wavelength, flux, error
     else:
