@@ -248,6 +248,7 @@ def make_phoenix_spectrum(star, save_path, repo, star_params, save_ecsv=False, p
         plt.yscale('log')
         plt.xscale('log')
         plt.show()
+    if make_error == True:
         return wavelength, flux, error
     else:
         return wavelength, flux
