@@ -12,7 +12,7 @@ import stisblazefix
 """
 Adjusts a STIS echelle spectrum using stis blaze fix and splices each order by uncertainty-weighted coadding. Also returns the ratio between flux measurements in the same wavelength bin.
 
-20221012 now works on files with more than one data extensio, adding them to the file name.
+20221012 now works on files with more than one data extension, adding them to the file name.
 
 """
 
@@ -197,6 +197,7 @@ def splice(filepath='data/', outpath='output/', nclip=5, save_fits=True, save_da
                     primary_hdu = fits.PrimaryHDU(header=hdr)
                     hdu = fits.table_to_hdu(newdata)
                     hdu.name='SPECTRUM'
+                    hdu.header = fits.getheader(x, i+1)
                     hdul = fits.HDUList([primary_hdu, hdu])
                     hdul.writeto('{}{}_{}spliced.fits'.format(outpath, rootname, extname), overwrite=True)
     print('Done')

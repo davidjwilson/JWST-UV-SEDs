@@ -12,6 +12,8 @@ import stisblazefix
 """
 Adjusts a STIS echelle spectrum using stis blaze fix and splices each order by uncertainty-weighted coadding. Also returns the ratio between flux measurements in the same wavelength bin.
 
+20221012 now works on files with more than one data extension, adding them to the file name.
+
 """
 
 
@@ -175,21 +177,29 @@ def splice(filepath='data/', outpath='output/', nclip=5, save_fits=True, save_da
             rootname = hdr['ROOTNAME']
             print(rootname)
             make_x1f(x, outpath, rootname)
-            data = fits.getdata('{}{}_x1f.fits'.format(filepath, rootname))
-            w, f, e, dq, r = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip)
-            newdata = Table([w*u.AA, f*u.erg/u.s/u.cm**2/u.AA, e*u.erg/u.s/u.cm**2/u.AA, dq, r], names=['WAVELENGTH', 'FLUX', 'ERROR', 'DQ', 'ORDER_RATIO'])
-            if plot:
-                plot_spectrum(newdata, rootname)
-            if save_ecsv:
-                ascii.write(newdata, '{}{}_spliced.ecsv'.format(outpath, rootname), format='ecsv', overwrite=True)
-            if save_dat:
-                savdat = Table([w,f,e], names=['#WAVELENGTH', 'FLUX', 'ERROR'])
-                ascii.write(savdat, '{}{}_spliced.dat'.format(outpath, rootname), format='basic', overwrite=True)
-            if save_fits:
-                primary_hdu = fits.PrimaryHDU(header=hdr)
-                hdu = fits.table_to_hdu(newdata)
-                hdul = fits.HDUList([primary_hdu, hdu])
-                hdul.writeto('{}{}_spliced.fits'.format(outpath, rootname), overwrite=True)
+            nextend = fits.getheader('{}{}_x1f.fits'.format(filepath, rootname), 0)['NEXTEND']
+            for i in range(nextend):
+                data = fits.getdata('{}{}_x1f.fits'.format(filepath, rootname), i+1)
+                w, f, e, dq, r = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip)
+                newdata = Table([w*u.AA, f*u.erg/u.s/u.cm**2/u.AA, e*u.erg/u.s/u.cm**2/u.AA, dq, r], names=['WAVELENGTH', 'FLUX', 'ERROR', 'DQ', 'ORDER_RATIO'])
+                if nextend == 1:
+                    extname = ''
+                else:
+                    extname = '_ext{}_'.format(i+1) #if more than one data extension, add the extension number to the file name
+                if plot:
+                    plot_spectrum(newdata, rootname)
+                if save_ecsv:
+                    ascii.write(newdata, '{}{}_{}spliced.ecsv'.format(outpath, rootname, extname), format='ecsv', overwrite=True)
+                if save_dat:
+                    savdat = Table([w,f,e], names=['#WAVELENGTH', 'FLUX', 'ERROR'])
+                    ascii.write(savdat, '{}{}_{}spliced.dat'.format(outpath, rootname, extname), format='basic', overwrite=True)
+                if save_fits:
+                    primary_hdu = fits.PrimaryHDU(header=hdr)
+                    hdu = fits.table_to_hdu(newdata)
+                    hdu.name='SPECTRUM'
+                    hdu.header = fits.getheader(x, i+1)
+                    hdul = fits.HDUList([primary_hdu, hdu])
+                    hdul.writeto('{}{}_{}spliced.fits'.format(outpath, rootname, extname), overwrite=True)
     print('Done')
             
 if __name__ == "__main__": 
