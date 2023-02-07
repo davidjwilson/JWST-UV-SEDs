@@ -40,7 +40,7 @@ def coadd_flux(f_array, e_array, scale_correct=True):
         error = var**2
     return flux,error
 
-def no_zero_errors(flux, error):
+def no_zero_errors_old(flux, error):
     """
     Corrects instances where negative flux measurements have very small errors. Superceeded by make_person_errors
     """
@@ -50,6 +50,16 @@ def no_zero_errors(flux, error):
             e_new[i] = abs(flux[i])
     return e_new
 
+def no_zero_errors(error):
+    """
+    Replaces any instances of error == 0 with the nearest value. Stops problems in coadding
+    """
+    while len(error[error == 0.0]) > 0: #clean out zeros
+        for i in range(len(error)-1):
+            if error[i] ==0:
+                error[i] = error[i+1] #and replace them with the nearest value 
+    return error
+
 def make_person_errors(data, hdr):
     """
     Recalculates the error array using a pearson confidence interval - this corrects for the pipeline producing errors with zero
@@ -57,9 +67,12 @@ def make_person_errors(data, hdr):
     sensitivity = data['FLUX'] / data['NET'] #sensitivity curve of the spectrum 
     counts = data['GROSS'] * hdr['EXPTIME'] #total counts obtained in each wavelength bin during the exposure
     ci = stats.poisson_conf_interval(counts, interval='pearson') #pearson confidence interval
+    ci = np.nan_to_num(ci, nan=0.0)
     count_errors = np.mean(abs(ci -counts), axis = 0) #average the upper and lower errorbars
-    new_error = count_errors * sensitivity/hdr['EXPTIME'] #convert error to flux units.
+    new_error = count_errors * sensitivity/hdr['EXPTIME'] #convert error to flux units    
     return new_error
+
+
 
 def build_wavelength(x1ds):
     """
@@ -139,7 +152,10 @@ def combine_x1ds(x1ds, correct_error=True):
                 hdr = fits.getheader(x,0)
                 hdr1 = fits.getheader(x,1)
                 fi = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], bounds_error=False, fill_value=0.)(w_new)
-                ei = interpolate.interp1d(data['WAVELENGTH'], data['ERROR'], bounds_error=False, fill_value=0.)(w_new)
+                ei = data['ERROR']
+                if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
+                    ei = make_person_errors(data, hdr1)
+                ei = interpolate.interp1d(data['WAVELENGTH'], ei, bounds_error=False, fill_value=0.)(w_new)
                 dqi =  interpolate.interp1d(data['WAVELENGTH'], data['DQ'], kind='nearest',bounds_error=False, fill_value=0.)(w_new)
                 expi = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME'])
                 expi = interpolate.interp1d(data['WAVELENGTH'], expi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
@@ -148,9 +164,7 @@ def combine_x1ds(x1ds, correct_error=True):
                 endi = np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
                 endi = interpolate.interp1d(data['WAVELENGTH'], endi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
 
-                if correct_error:    
-                    # ei = no_zero_errors(fi, ei)
-                    ei = make_person_errors(data, hdr1)
+           
                 f_new.append(fi)
                 e_new.append(ei)
                 dq_new.append(dqi)
@@ -176,8 +190,8 @@ def combine_x1ds(x1ds, correct_error=True):
         hdr = fits.getheader(x1ds[0],0)
         w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
         exptime, start, end = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME']), np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT']), np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
-        if correct_error:    
-                e_new = no_zero_errors(f_new, e_new)
+        if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
+                    enew = make_person_errors(data, hdr1)
    
     f_new, e_new = nan_clean(f_new), nan_clean(e_new)
     w0, w1 = wavelength_edges(w_new)
