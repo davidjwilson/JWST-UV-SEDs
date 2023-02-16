@@ -7,7 +7,8 @@ from astropy.table import Table
 from astropy.io import ascii
 import astropy.units as u
 import scipy.interpolate as interpolate
-import stisblazefix
+# import stisblazefix
+
 
 """
 Adjusts a STIS echelle spectrum using stis blaze fix and splices each order by uncertainty-weighted coadding. Also returns the ratio between flux measurements in the same wavelength bin.
@@ -158,7 +159,7 @@ def plot_spectrum(data,rootname):
     plt.show()
 
     
-def splice(filepath='data/', outpath='output/', nclip=5, save_fits=True, save_dat=True, plot=True, save_ecsv=False):
+def splice(filepath='data/', outpath='output/', nclip=5, save_fits=True, save_dat=True, plot=True, save_ecsv=False, blazefix = False):
     """
     Applies stisblazefix and splices all echelle x1d files in filepath. Results are saved in outpath.
     """
@@ -176,7 +177,9 @@ def splice(filepath='data/', outpath='output/', nclip=5, save_fits=True, save_da
         if hdr['INSTRUME'] == 'STIS' and hdr['OPT_ELEM'][0] == 'E': #check it's an echelle:
             rootname = hdr['ROOTNAME']
             print(rootname)
-            make_x1f(x, outpath, rootname)
+            if blazefix:
+                import stisblazefix
+                make_x1f(x, outpath, rootname)
             nextend = fits.getheader('{}{}_x1f.fits'.format(filepath, rootname), 0)['NEXTEND']
             for i in range(nextend):
                 data = fits.getdata('{}{}_x1f.fits'.format(filepath, rootname), i+1)

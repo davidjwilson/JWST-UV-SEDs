@@ -94,9 +94,10 @@ def wavelength_edges(w):
     Calulates w0 and w1
     """
     diff = np.diff(w)
-    diff = np.concatenate((np.array([diff[0]]), diff)) #adds an extravalue to make len(diff) = len(w)
-    w0 = w - diff/2.
-    w1 = w + diff/2.
+    diff0 = np.concatenate((np.array([diff[0]]), diff)) #adds an extravalue to make len(diff) = len(w)
+    diff1 = np.concatenate((diff, np.array([diff[-1]]))) #adds an extravalue to make len(diff) = len(w)
+    w0 = w - diff0/2.
+    w1 = w + diff1/2.
     return w0, w1
 
 def nan_clean(array):
@@ -288,7 +289,7 @@ def save_to_fits(data, metadata, hlsp, dataset_hdu, savepath, version):
                 'modified julian date of end of last exposure']
     hdu.header.insert(8, ('EXTNAME','SPECTRUM'))
     hdu.header.insert(9, ('EXTNO',2))
-    [hdu.header.insert(i[0]+10, ('TDESC%s' %(i[0]), i[1])) for i in enumerate(descriptions)]
+    [hdu.header.insert(i[0]+10, ('TDESC{}s'.format(i[0]), i[1])) for i in enumerate(descriptions)]
     hdul = fits.HDUList([primary_hdu, hdu, dataset_hdu])
     hdul.writeto(savepath+file_name+'.fits', overwrite=True)
     print('Spectrum saved as '+file_name+'.fits')
