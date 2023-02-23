@@ -30,14 +30,17 @@ def coadd_flux(f_array, e_array, scale_correct=True):
     Returns a variance-weighted coadd with standard error of the weighted mean (variance weights, scale corrected).
     f_array and e_arrays are collections of flux and error arrays, which should have the same lenth and wavelength scale
     """
-    weights = 1 / (e_array**2)
-    flux = np.average(f_array, axis =0, weights = weights)
-    var = 1 / np.sum(weights, axis=0)
-    rcs = np.sum((((flux - f_array)**2) * weights), axis=0) / (len(f_array)-1) #reduced chi-squared
-    if scale_correct:
-        error = (var * rcs)**0.5
+    if len(f_array) > 1:
+        weights = 1 / (e_array**2)
+        flux = np.average(f_array, axis =0, weights = weights)
+        var = 1 / np.sum(weights, axis=0)
+        rcs = np.sum((((flux - f_array)**2) * weights), axis=0) / (len(f_array)-1) #reduced chi-squared
+        if scale_correct:
+            error = (var * rcs)**0.5
+        else:
+            error = var**2
     else:
-        error = var**2
+        flux, error = f_array[0,:], e_array[0,:]
     return flux,error
 
 def no_zero_errors_old(flux, error):
@@ -72,7 +75,96 @@ def make_person_errors(data, hdr):
     new_error = count_errors * sensitivity/hdr['EXPTIME'] #convert error to flux units    
     return new_error
 
+def echelle_coadd_dq(wavelength, flux, err, dq, nclip =5, find_ratio =True, dq_adjust=False, dq_cut =0):
+    """
+    combines echelle orders into one spectrum, stiching them together at the overlap 
+    """
+    #slice dodgy ends off orders (usually 5-10 for stis el40m)
+    wavelength = wavelength[:, nclip:-(nclip+1)]
+    flux = flux[:, nclip:-(nclip+1)]
+    err = err[:, nclip:-(nclip+1)]
+    dq = dq[:, nclip:-(nclip+1)]
+    
+    #new arrays to put the output in
+    w_full = np.array([], dtype=float)
+    f_full = np.array([], dtype=float)
+    e_full = np.array([], dtype=float)
+    dq_full = np.array([], dtype=int)
+    if find_ratio:
+        r_full = np.array([], dtype=float) #ratio between orders
 
+    shape = np.shape(flux)
+    order = 0
+    while order < (shape[0]):
+        
+        #first add the part that does not overlap ajacent orders to the final spectrum
+        if order == 0: #first and last orders do not overlap at both ends
+            overmask = (wavelength[order] > wavelength[order + 1][-1])
+        elif order == shape[0]-1:
+            overmask = (wavelength[order] < wavelength[order - 1][1])
+        else:
+            overmask = (wavelength[order] > wavelength[order + 1][-1]) & (wavelength[order] < wavelength[order - 1][1])
+        w_full = np.concatenate((w_full, wavelength[order][overmask]))
+        f_full = np.concatenate((f_full, flux[order][overmask]))
+        e_full = np.concatenate((e_full, err[order][overmask]))
+        dq_full = np.concatenate((dq_full, dq[order][overmask]))
+        if find_ratio:
+            r_full = np.concatenate((r_full, np.full(len(err[order][overmask]), -1)))
+  
+        if order != shape[0]-1:
+            
+            #interpolate each order onto the one beneath it, with larger wavelength bins. Code adapted from stisblazefix
+            f = interpolate.interp1d(wavelength[order + 1], flux[order + 1], fill_value='extrapolate')
+            g = interpolate.interp1d(wavelength[order + 1], err[order + 1], fill_value='extrapolate')
+            dqi = interpolate.interp1d(wavelength[order + 1], dq[order + 1], kind='nearest',bounds_error=False, fill_value=0)
+            overlap = np.where(wavelength[order] <= wavelength[order + 1][-1])
+            f0 = flux[order][overlap]
+            f1 = f(wavelength[order][overlap])
+            g0 = err[order][overlap]
+            g1 = g(wavelength[order][overlap])
+            dq0 = dq[order][overlap]
+            dq1 = dqi(wavelength[order][overlap])
+       
+             
+            #combine flux and error at overlap and add to final spectrum
+            w_av = wavelength[order][overlap]
+            if dq_adjust: #removes values with high dq: #THIS DOESN'T REALLY WORK YET
+                if dq_cut == 0:
+                    dq_cut = 1 #allows zero to be the default
+                for i in range(len(wavelength[order][overlap])):
+                    if dq0[i] >= dq_cut:
+                        g0 *= 100 #make error very large so it doesn't contribute to the coadd
+                    if dq1[i] >= dq_cut:
+                        g1 *= 100 
+                        
+            
+            
+            f_av, e_av = coadd_flux(np.array([f0,f1]),np.array([g0,g1]))
+            dq_av = [(np.sum(np.unique(np.array([dq0, dq1])[:,i]))) for i in range(len(dq0))]
+            
+            
+            w_full = np.concatenate((w_full, w_av))
+            f_full = np.concatenate((f_full, f_av))
+            e_full = np.concatenate((e_full, e_av))
+            dq_full = np.concatenate((dq_full, dq_av))
+            
+            if find_ratio:
+                r_full = np.concatenate((r_full, f0/f1))
+        order += 1
+    
+    #stis orders are saved in reverse order, so combined spectra are sorted by the wavelength array
+    arr1inds = w_full.argsort()
+    sorted_w = w_full[arr1inds]
+    sorted_f = f_full[arr1inds]
+    sorted_e = e_full[arr1inds]
+    sorted_dq = dq_full[arr1inds]
+    if find_ratio:
+        sorted_r = r_full[arr1inds]
+ 
+    if find_ratio:
+        return sorted_w, sorted_f, sorted_e, sorted_dq, sorted_r
+    else:
+        return sorted_w, sorted_f, sorted_e, sorted_dq
 
 def build_wavelength(x1ds):
     """
@@ -82,10 +174,14 @@ def build_wavelength(x1ds):
     ends = []
     diffs = []
     for x in x1ds:
-        w = fits.getdata(x, 1)[0]['WAVELENGTH']
-        starts.append(w[0])
-        ends.append(w[-1])
-        diffs.append(np.max(np.diff(w)))
+        nextend = fits.getheader(x, 0)['NEXTEND']
+        for i in range(nextend):
+            data = fits.getdata(x, i+1)
+            for dt in data:
+                w = dt['WAVELENGTH']
+                starts.append(min(w))
+                ends.append(max(w))
+                diffs.append(np.max(np.diff(w)))
     w_new = np.arange(min(starts),max(ends), max(diffs))
     return w_new
 
@@ -117,82 +213,90 @@ def get_ayres_e140m(x1ds):
     w_new, f_new, e_new, dq_new, exptime = data['wave'], data['flux'], data['photerr'], data['epsilon'], data['texpt']
     return w_new, f_new, e_new, dq_new, exptime
     
-def combine_x1ds(x1ds, correct_error=True):
+def combine_x1ds(x1ds, correct_error=True, nclip=5):
     """
     coadds a collection of x1d fluxes and adds columns for exposure time detials. Input is a list of paths to x1d files with the same grating. Also works for sx1 files
 
     """
-    if len(x1ds) > 1:
-        if fits.getheader(x1ds[0])['OPT_ELEM'] == 'E140M':
-      #  print('yes')
-            w_new, f_new, e_new, dq_new, exptime = get_ayres_e140m(x1ds)
-            start = []
-            end = []
-            for x in x1ds:
-                hdr = fits.getheader(x,0)
-                start.append(hdr['TEXPSTRT'])
-                end.append(hdr['TEXPEND'])
-            print('start', start)
-            print('end', end)
-            start, end = np.min(np.array(start)), np.max(np.array(end))
-            start, end = np.full(len(w_new), start), np.full(len(w_new), end)
+    # if len(x1ds) > 0:
+      #   if fits.getheader(x1ds[0])['OPT_ELEM'] == 'E140M':
+      # #  print('yes')
+      #       w_new, f_new, e_new, dq_new, exptime = get_ayres_e140m(x1ds)
+      #       start = []
+      #       end = []
+      #       for x in x1ds:
+      #           hdr = fits.getheader(x,0)
+      #           start.append(hdr['TEXPSTRT'])
+      #           end.append(hdr['TEXPEND'])
+      #       print('start', start)
+      #       print('end', end)
+      #       start, end = np.min(np.array(start)), np.max(np.array(end))
+      #       start, end = np.full(len(w_new), start), np.full(len(w_new), end)
 
             
                 
 #         start, end = ,np.full(len(w_new), 0), np.full(len(w_new), 0) 
-        else:
-            f_new = []
-            e_new = []
-            dq_new = []
-            exptime = []
-            start = []
-            end = []
-            w_new = build_wavelength(x1ds)
-            for x in x1ds:
-                data = fits.getdata(x, 1)[0]
-                hdr = fits.getheader(x,0)
-                hdr1 = fits.getheader(x,1)
-                fi = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], bounds_error=False, fill_value=0.)(w_new)
-                ei = data['ERROR']
+        # else:
+    f_new = []
+    e_new = []
+    dq_new = []
+    exptime = []
+    start = []
+    end = []
+    w_new = build_wavelength(x1ds)
+    for x in x1ds:
+        hdr = fits.getheader(x,0)
+        nextend = hdr['NEXTEND']
+        for i in range(nextend):
+            hdr1 = fits.getheader(x,i+1)
+            data = fits.getdata(x, i+1)
+            if hdr['OPT_ELEM'][0] == 'E':
+                print(hdr['OPT_ELEM'], 'yes')
+                wi, fi, ei, dqi = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
+            else:
+                # print(hdr['OPT_ELEM'], 'No')
+                data = data[0]
+                wi, fi, ei, dqi = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
                 if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
                     ei = make_person_errors(data, hdr1)
-                ei = interpolate.interp1d(data['WAVELENGTH'], ei, bounds_error=False, fill_value=0.)(w_new)
-                dqi =  interpolate.interp1d(data['WAVELENGTH'], data['DQ'], kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-                expi = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME'])
-                expi = interpolate.interp1d(data['WAVELENGTH'], expi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-                starti = np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT'])
-                starti = interpolate.interp1d(data['WAVELENGTH'], starti, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-                endi = np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
-                endi = interpolate.interp1d(data['WAVELENGTH'], endi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-
-           
-                f_new.append(fi)
-                e_new.append(ei)
-                dq_new.append(dqi)
-                exptime.append(expi)
-                start.append(starti)
-                end.append(endi)
+            fi = interpolate.interp1d(wi, fi, bounds_error=False, fill_value=0.)(w_new)
+            ei = interpolate.interp1d(wi, ei, bounds_error=False, fill_value=0.)(w_new)
+            dqi =  interpolate.interp1d(wi, dqi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+            expi = np.full(len(wi), hdr1['EXPTIME'])
+            expi = interpolate.interp1d(wi, expi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+            starti = np.full(len(wi), hdr1['EXPSTART'])
+            starti = interpolate.interp1d(wi, starti, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+            endi = np.full(len(wi), hdr['TEXPEND'])
+            endi = interpolate.interp1d(wi, endi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
 
 
-            f_new, e_new = coadd_flux(np.array(f_new), np.array(e_new))
-            dq_new = np.array(dq_new, dtype=int)
-            dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(dq_new[0]))]
-            exptime = np.sum(np.array(exptime), axis=0)
-            start = np.min(np.ma.masked_array(start, mask=[np.array(start) == 0.]), axis=0)
-            end = np.max(np.array(end), axis=0)
+            f_new.append(fi)
+            e_new.append(ei)
+            dq_new.append(dqi)
+            exptime.append(expi)
+            start.append(starti)
+            end.append(endi)
 
-    else: #in the case where there's only one available spectrum
-        data_extension = 1
-        # if x1ds[0][-8:-5] == 'sx1': #modified 1 off for t1 spectrum, must improve later
-            # data_extension = 0
-          #  
-        #else:
-        data = fits.getdata(x1ds[0],data_extension)[0]   
-        hdr = fits.getheader(x1ds[0],0)
-        w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
-        exptime, start, end = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME']), np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT']), np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
-        if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
-                    enew = make_person_errors(data, hdr1)
+
+    f_new, e_new = coadd_flux(np.array(f_new), np.array(e_new))
+    dq_new = np.array(dq_new, dtype=int)
+    dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(dq_new[0]))]
+    exptime = np.sum(np.array(exptime), axis=0)
+    start = np.min(np.ma.masked_array(start, mask=[np.array(start) == 0.]), axis=0)
+    end = np.max(np.array(end), axis=0)
+
+    # else: #in the case where there's only one available spectrum
+    #     data_extension = 1
+    #     # if x1ds[0][-8:-5] == 'sx1': #modified 1 off for t1 spectrum, must improve later
+    #         # data_extension = 0
+    #       #  
+    #     #else:
+    #     data = fits.getdata(x1ds[0],data_extension)[0]   
+    #     hdr = fits.getheader(x1ds[0],0)
+    #     w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
+    #     exptime, start, end = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME']), np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT']), np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
+    #     if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
+    #                 enew = make_person_errors(data, hdr1)
    
     f_new, e_new = nan_clean(f_new), nan_clean(e_new)
     w0, w1 = wavelength_edges(w_new)
@@ -344,7 +448,7 @@ def make_dataset_extension(x1ds):
     return hdu
 
     
-def make_stis_spectrum(x1dpath, version, hlsp, savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, star = ''):
+def make_stis_spectrum(x1dpath, version, hlsp, savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, star = '', nclip=5):
     """
     main function
     """
@@ -353,8 +457,10 @@ def make_stis_spectrum(x1dpath, version, hlsp, savepath = '', plot=False, save_e
     hlsp = Table.read(hlsp)[0]
     if len(stis_x1ds) > 0:
         gratings, x1ds_by_grating = setup_list(stis_x1ds)
+        # print(gratings, x1ds_by_grating)
         for x1ds in x1ds_by_grating:
-            data = combine_x1ds(x1ds)
+            # print(x1ds)
+            data = combine_x1ds(x1ds, nclip)
            # data = [wavelength*u.AA, flux*u.erg/u.s/u.cm**2/u.AA, error*u.erg/u.s/u.cm**2/u.AA, dq]
             metadata = make_metadata(x1ds, data, hlsp, normfac, star)
             if plot:
