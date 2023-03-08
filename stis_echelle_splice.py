@@ -15,6 +15,8 @@ Adjusts a STIS echelle spectrum using stis blaze fix and splices each order by u
 
 20221012 now works on files with more than one data extension, adding them to the file name.
 
+20230227 stisblazefix doesn't play well with the new stenv, turning off for now
+
 """
 
 

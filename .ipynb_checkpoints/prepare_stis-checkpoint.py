@@ -170,20 +170,23 @@ def build_wavelength(x1ds):
     """
     builds a wavelength array covering all wavelength ranges in x1d (different cenwaves)
     """
-    starts = []
-    ends = []
-    diffs = []
-    for x in x1ds:
-        nextend = fits.getheader(x, 0)['NEXTEND']
-        for i in range(nextend):
-            data = fits.getdata(x, i+1)
-            for dt in data:
-                w = dt['WAVELENGTH']
-                starts.append(min(w))
-                ends.append(max(w))
-                diffs.append(np.max(np.diff(w)))
-    w_new = np.arange(min(starts),max(ends), max(diffs))
-    return w_new
+    if len(x1ds) == 1 and fits.getheader(x1ds[0], 0)['NEXTEND'] == 1 and fits.getheader(x1ds[0], 0)['OPT_ELEM'][0] =='G': 
+        w_new = fits.getdata(x1ds[0])[0]['WAVELENGTH']
+    else:
+        starts = []
+        ends = []
+        diffs = []
+        for x in x1ds:
+            nextend = fits.getheader(x, 0)['NEXTEND']
+            for i in range(nextend):
+                data = fits.getdata(x, i+1)
+                for dt in data:
+                    w = dt['WAVELENGTH']
+                    starts.append(min(w))
+                    ends.append(max(w))
+                    diffs.append(np.max(np.diff(w)))
+        w_new = np.arange(min(starts),max(ends), max(diffs))
+        return w_new
 
 def wavelength_edges(w):
     """
@@ -251,7 +254,7 @@ def combine_x1ds(x1ds, correct_error=True, nclip=5):
             hdr1 = fits.getheader(x,i+1)
             data = fits.getdata(x, i+1)
             if hdr['OPT_ELEM'][0] == 'E':
-                print(hdr['OPT_ELEM'], 'yes')
+                # print(hdr['OPT_ELEM'], 'yes')
                 wi, fi, ei, dqi = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
             else:
                 # print(hdr['OPT_ELEM'], 'No')
