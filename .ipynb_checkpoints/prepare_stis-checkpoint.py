@@ -38,7 +38,7 @@ def coadd_flux(f_array, e_array, scale_correct=True):
         if scale_correct:
             error = (var * rcs)**0.5
         else:
-            error = var**2
+            error = var**0.5
     else:
         flux, error = f_array[0,:], e_array[0,:]
     return flux,error
