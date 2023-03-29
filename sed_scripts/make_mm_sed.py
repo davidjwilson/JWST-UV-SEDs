@@ -428,7 +428,7 @@ def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A
     if euv_type == 'dem':
         instrument_name = 'mod_dem_-----'
     if euv_type == 'sol':
-        instrument_name = 'solar_proxy'
+        instrument_name = 'mod_sol_-----'
     euv_path = glob.glob(component_repo+'*'+euv_type+'*.ecsv')
     if len(euv_path) > 0:
         euv = Table.read(euv_path[0])

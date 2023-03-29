@@ -34,7 +34,7 @@ import instruments
 path = '/home/david/work/meats/SEDs/draft_hlsp/wasp-63/'  #path where the files are
 
 star = 'WASP-63'
-version = 1
+version = 2
 
 airglow =  [1207, 1222, 1300, 1310, 1353, 1356]
 cos_gratings = ['G130M', 'G160M']
@@ -65,6 +65,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
 
     
     # plt.figure()
+    # if to_1A:
+        # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')
     plt.yscale('log')
     plt.xscale('log')

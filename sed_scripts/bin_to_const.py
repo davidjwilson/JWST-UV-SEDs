@@ -84,8 +84,8 @@ def spectrum_to_const_res(spectrum, res=1):
                                new_dq,new_expstart*cds.MJD, new_expend*cds.MJD], names=names, meta= spectrum.meta)
         
     else: #if it's a phoenix model it breaks the data down into chunks and makes a spectrum out to 1.3e5 A, where the native resolution drops below 1A
-        if spectrum.meta['INSTRUME'] == 'PHX' and 'ERROR' in spectrum.dtype.names:
-            print('binning a PHOENIX model with an error array')
+        if spectrum.meta['INSTRUME'] in ['PHX', 'SOL'] and 'ERROR' in spectrum.dtype.names:
+            print('binning a PHOENIX model or Solar with an error array')
             mask = spectrum['WAVELENGTH'] < 1.3e5
             w1, f1, e1 = spectrum['WAVELENGTH'][mask], spectrum['FLUX'][mask], spectrum['ERROR'][mask]
             start = w1[0]
@@ -96,7 +96,7 @@ def spectrum_to_const_res(spectrum, res=1):
             while start <= w1[-1]:
                 mask = (w1 >= start-1) & (w1 < start+step+1) #plus one fixes nans
                 w2, f2, e2 = w1[mask], f1[mask], e1[mask]
-                neww = np.arange(w2[0]+1, w2[-1]-1, 1) #but you have to take it off again
+                neww = np.arange(mt.floor(w2[0])+1, mt.ceil(w2[-1])-1, 1) #but you have to take it off again
 #                 input_spec = Spectrum1D(spectral_axis=(w2.value)*u.AA, flux=f2*u.Unit('erg cm-2 s-1 AA-1') )
 #                 new_spec_fluxcon = fluxcon(input_spec, neww*u.AA)
                 
