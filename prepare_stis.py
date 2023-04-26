@@ -24,6 +24,8 @@ Finds all STIS x1d files, groups them by grating, coadds them and saves to file 
 
 V5 updated to make it more adapatable to different programs and new error corrections
 
+20230426 fixed case where there's only one spectrum
+
 """
 def coadd_flux(f_array, e_array, scale_correct=True):
     """
@@ -240,67 +242,67 @@ def combine_x1ds(x1ds, correct_error=True, nclip=5):
                 
 #         start, end = ,np.full(len(w_new), 0), np.full(len(w_new), 0) 
         # else:
-    f_new = []
-    e_new = []
-    dq_new = []
-    exptime = []
-    start = []
-    end = []
-    w_new = build_wavelength(x1ds)
-    for x in x1ds:
-        hdr = fits.getheader(x,0)
-        nextend = hdr['NEXTEND']
-        for i in range(nextend):
-            hdr1 = fits.getheader(x,i+1)
-            data = fits.getdata(x, i+1)
-            if hdr['OPT_ELEM'][0] == 'E':
-                # print(hdr['OPT_ELEM'], 'yes')
-                wi, fi, ei, dqi = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
-            else:
-                # print(hdr['OPT_ELEM'], 'No')
-                data = data[0]
-                wi, fi, ei, dqi = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
-                if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
-                    ei = make_person_errors(data, hdr1)
-            fi = interpolate.interp1d(wi, fi, bounds_error=False, fill_value=0.)(w_new)
-            ei = interpolate.interp1d(wi, ei, bounds_error=False, fill_value=0.)(w_new)
-            dqi =  interpolate.interp1d(wi, dqi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-            expi = np.full(len(wi), hdr1['EXPTIME'])
-            expi = interpolate.interp1d(wi, expi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-            starti = np.full(len(wi), hdr1['EXPSTART'])
-            starti = interpolate.interp1d(wi, starti, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
-            endi = np.full(len(wi), hdr['TEXPEND'])
-            endi = interpolate.interp1d(wi, endi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+    if len(x1ds) > 1:
+        f_new = []
+        e_new = []
+        dq_new = []
+        exptime = []
+        start = []
+        end = []
+        w_new = build_wavelength(x1ds)
+        for x in x1ds:
+            hdr = fits.getheader(x,0)
+            nextend = hdr['NEXTEND']
+            for i in range(nextend):
+                hdr1 = fits.getheader(x,i+1)
+                data = fits.getdata(x, i+1)
+                if hdr['OPT_ELEM'][0] == 'E':
+                    # print(hdr['OPT_ELEM'], 'yes')
+                    wi, fi, ei, dqi = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
+                else:
+                    # print(hdr['OPT_ELEM'], 'No')
+                    data = data[0]
+                    wi, fi, ei, dqi = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
+                    if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
+                        ei = make_person_errors(data, hdr1)
+                fi = interpolate.interp1d(wi, fi, bounds_error=False, fill_value=0.)(w_new)
+                ei = interpolate.interp1d(wi, ei, bounds_error=False, fill_value=0.)(w_new)
+                dqi =  interpolate.interp1d(wi, dqi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+                expi = np.full(len(wi), hdr1['EXPTIME'])
+                expi = interpolate.interp1d(wi, expi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+                starti = np.full(len(wi), hdr1['EXPSTART'])
+                starti = interpolate.interp1d(wi, starti, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
+                endi = np.full(len(wi), hdr['TEXPEND'])
+                endi = interpolate.interp1d(wi, endi, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
 
 
-            f_new.append(fi)
-            e_new.append(ei)
-            dq_new.append(dqi)
-            exptime.append(expi)
-            start.append(starti)
-            end.append(endi)
+                f_new.append(fi)
+                e_new.append(ei)
+                dq_new.append(dqi)
+                exptime.append(expi)
+                start.append(starti)
+                end.append(endi)
 
 
-    f_new, e_new = coadd_flux(np.array(f_new), np.array(e_new))
-    dq_new = np.array(dq_new, dtype=int)
-    dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(dq_new[0]))]
-    exptime = np.sum(np.array(exptime), axis=0)
-    start = np.min(np.ma.masked_array(start, mask=[np.array(start) == 0.]), axis=0)
-    end = np.max(np.array(end), axis=0)
+        f_new, e_new = coadd_flux(np.array(f_new), np.array(e_new))
+        dq_new = np.array(dq_new, dtype=int)
+        dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(dq_new[0]))]
+        exptime = np.sum(np.array(exptime), axis=0)
+        start = np.min(np.ma.masked_array(start, mask=[np.array(start) == 0.]), axis=0)
+        end = np.max(np.array(end), axis=0)
 
-    # else: #in the case where there's only one available spectrum
-    #     data_extension = 1
-    #     # if x1ds[0][-8:-5] == 'sx1': #modified 1 off for t1 spectrum, must improve later
-    #         # data_extension = 0
-    #       #  
-    #     #else:
-    #     data = fits.getdata(x1ds[0],data_extension)[0]   
-    #     hdr = fits.getheader(x1ds[0],0)
-    #     w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
-    #     exptime, start, end = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME']), np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT']), np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
-    #     if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
-    #                 enew = make_person_errors(data, hdr1)
-   
+    else: #in the case where there's only one available spectrum
+        data_extension = 1
+ 
+        data = fits.getdata(x1ds[0],data_extension)[0]   
+        hdr = fits.getheader(x1ds[0],0)
+        if hdr['OPT_ELEM'][0] == 'E':
+            w_new, f_new, e_new, dq_new = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
+        else:
+            w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
+        exptime, start, end = np.full(len(data['WAVELENGTH']), hdr['TEXPTIME']), np.full(len(data['WAVELENGTH']), hdr['TEXPSTRT']), np.full(len(data['WAVELENGTH']), hdr['TEXPEND'])
+        if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
+                    enew = make_person_errors(data, hdr)
     f_new, e_new = nan_clean(f_new), nan_clean(e_new)
     w0, w1 = wavelength_edges(w_new)
     new_data = {'WAVELENGTH':w_new*u.AA,'WAVELENGTH0':w0*u.AA,'WAVELENGTH1':w1*u.AA,'FLUX':f_new*u.erg/u.s/u.cm**2/u.AA,
