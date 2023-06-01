@@ -1,2 +1,2 @@
-PROGRAM, PROGRAMSHORT, HLSPNAME, HLSPLEAD
-MUSCLES Extension for Atmospheric Transmisson Spectroscopy, MEATS , MUSCLES, David J. Wilson
+PROGRAM, PROGRAMSHORT, HLSPNAME, HLSPLEAD, PR_INV_L, PR_INV_F
+MUSCLES Extension for Atmospheric Transmisson Spectroscopy, MEATS , MUSCLES, David J. Wilson, Youngblood, Allison
