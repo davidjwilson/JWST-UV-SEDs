@@ -61,9 +61,9 @@ def build_xmm_metadata(hdr0, new_data, hlsp):
                  'EXPMAX','EXPMED','NORMFAC','WAVEMIN','WAVEMAX','WAVEUNIT','AIRORVAC','SPECRES','WAVERES','FLUXMIN',
                   'FLUXMAX','FLUXUNIT']
     meta_fill = ['XMM','EPIC','NA','MULTI','PN','MOS1','MOS2','MULTI', hdr0['pn_FILTER'],
-                 hdr0['mos1_FILTER'],hdr0['mos2_FILTER'],hdr0['TARGET'].replace(' ',''),'','','15071',
-                 hlsp['PROGRAM'],hlsp['PROGRAMSHORT'],hlsp['HLSPLEAD'],
-                 hlsp['PR_INV_L'],hlsp['PR_INV_F'] ,hdr0['pn_DATE-OBS'], start, end, exptime, 'MEAN', exptime, 
+                 hdr0['mos1_FILTER'],hdr0['mos2_FILTER'],hdr0['TARGET'].replace(' ',''),'','',hlsp['PROPOSID'][0],
+                 hlsp['PROGRAM'][0],hlsp['PROGRAMSHORT'][0],hlsp['HLSPLEAD'][0],
+                 hlsp['PR_INV_L'][0],hlsp['PR_INV_F'][0] ,hdr0['pn_DATE-OBS'], start, end, exptime, 'MEAN', exptime, 
                  exptime, exptime, 1.0, min(wavelength), max(wavelength), 'ang', 'vac', specres, waveres,np.min(flux[np.isnan(flux)==False]),
                  np.max(flux[np.isnan(flux)==False]),'erg/s/cm2/ang']  
     metadata = {}
