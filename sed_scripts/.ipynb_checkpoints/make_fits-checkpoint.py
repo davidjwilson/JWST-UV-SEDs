@@ -8,7 +8,7 @@ from astropy.units import cds
 import instruments
 cds.enable()
 """
-Making hslp standard fits files for Mega-Muscles
+Making hslp standard fits files for Mega-Muscles and MEATS
 """
 def make_primary_header(hdr, sed_table, instrument_list):
     meta = sed_table.meta
@@ -83,7 +83,10 @@ def make_instrument_extension(sed_table, instlist, version):
     instrus = [instruments.getinststr(inst)[4:7].upper() for inst in instlist]
     gratings = [instruments.getinststr(inst)[8:].replace('-----','na').upper() for inst in instlist]
     target = sed_table.meta['TARGNAME']
-    filenames = ['hlsp_muscles_{}_{}_{}_{}_v{}_component-spec.fits'.format(tel, inst, target, grating, version).lower() for tel, inst, grating in zip(telescopes, instrus,gratings)]
+    instname = [instruments.gethlspinst(inst.lower()) for inst in instrus]
+    
+    
+    filenames = ['hlsp_muscles_{}_{}_{}_{}_v{}_component-spec.fits'.format(tel, inst, target, grating, version).lower() for tel, inst, grating in zip(telescopes, instname,gratings)]
     data = Table([instlist, telescopes, instrus, gratings , filenames], names = ['BITVALUE','TELESCOPE','INSTRUMENT','GRATING','HLSP_FILE'])
     hdu = fits.table_to_hdu(data)
     

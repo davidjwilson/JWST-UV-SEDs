@@ -61,6 +61,15 @@ def gethlspname(inst_string):
     tel, inst, grate = inst_string[0:3], inst_string[4:7], inst_string[8:]
     return HLSPtelescopes[tel], HLSPinstruments[inst], HLSPgratings[grate]
 
+def gethlspinst(inst):
+    """
+    Converts a 3 letter inst abbreviation into the full name that goes in the hlsp code.
+    """
+    name = inst
+    if inst in HLSPinstruments.keys():
+        name = HLSPinstruments[inst]
+    return name
+    
 def getmodelcodes():
     """
     Returns the list of codes that are models.
