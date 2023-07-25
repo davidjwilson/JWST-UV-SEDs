@@ -13,11 +13,16 @@ from scipy.interpolate import griddata, interp1d
 """
 @author: David Wilson
 
-@version: 24 
+@version: 5 
 
-@date :20221014
+@date :20230725
 
-Turns models into standard MUSCLES file. Added capability for errors
+Turns models into standard MUSCLES file. Added capability for errors.
+
+v5 changing to read hlsp file - but not yet, need to work out how to incorporate target name, RA and DEC
+
+
+
 """
 
 def wavelength_edges(w):
