@@ -221,9 +221,10 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
 #     if len(sed_table) == 0:
 #         print('initialising SED')
 #         sed_table = dict(WAVELENGTH = []) #bit of a hack, improve later
-    stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB']
+    stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
+        stis_gratings.append('G750L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
    # g140l_path = glob.glob(component_repo+'*g140l*.ecsv')
    # g140m_path = glob.glob(component_repo+'*g140m*.ecsv')
     
@@ -238,16 +239,18 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
             lya = bin1A.spectrum_to_const_res(lya)
         instrument_code, lya = fill_model(lya, 'mod_lya_young', hdr)
         instrument_list.append(instrument_code)
-        lya = normfac_column(lya, hdr)        
+        lya = normfac_column(lya, hdr)
+        lya_range = [lya['WAVELENGTH'][0], lya['WAVELENGTH'][-1]]
     normfac = 1.0
     uses_e140m = False #if nether present fill in COS airglow with a polynomial
     used_g140l = False
     for grating in stis_gratings:
         specpath = glob.glob('{}*{}_v*.fits'.format(component_repo, grating.lower()))  
         if len(specpath) == 1:
+            print('adding {} spectrum'.format(grating))
             data= Table(fits.getdata(specpath[0], 1))
             hdr = fits.getheader(specpath[0], 0)
-            print(grating)
+#             print(grating)
 #             print(specpath)
         
             if hdr['INSTRUME'] =='STIS':
@@ -272,7 +275,11 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 elif grating == 'G140L':
                     used_g140l = True
                     mask = mask_maker(data['WAVELENGTH'], other_airglow, include=False) #fill in airglow gaps
-                    mask |= (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                    if len(sed_table) != 0:
+                        mask |= (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                    else:
+                        mask |= (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0])  | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])
+                        
                     
                 elif grating == 'G430L':
                     if error_cut: #cut region before a rolling 30pt mean SN > 1
@@ -303,7 +310,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 else:                
                     sed_table = vstack([sed_table, data], metadata_conflicts = 'silent')
     if len(lya_path) == 1:    #lya needs to be added after e140m  
-#         print('adding lya')
+        print('adding a lya reconstruction')
         sed_table = vstack([sed_table, lya], metadata_conflicts = 'silent')
     sed_table.sort(['WAVELENGTH'])
 
@@ -330,6 +337,7 @@ def add_phoenix_and_g430l(sed_table, component_repo, instrument_list, error_cut=
     phx_path = glob.glob(component_repo+'*phx*.fits')
     g430l_path = glob.glob(component_repo+'*g430l*.fits')
     if len(phx_path) == 1 and len(g430l_path) == 1:
+        print('adding a phx model and a 430L spectrum')
         phx = Table(fits.getdata(phx_path[0], 1))
         hdr = fits.getheader(phx_path[0], 0)
         if to_1A:
@@ -400,6 +408,7 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
     xray_path = glob.glob(component_repo+'*'+scope+'*.fits')
     xray_end = 0
     if len(xray_path) > 0:
+        print('adding an x-ray spectrum')
         xray = Table(fits.getdata(xray_path[0], 1))
         hdr = fits.getheader(xray_path[0], 0)
         if to_1A:
@@ -443,6 +452,7 @@ def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A
         instrument_name = 'mod_dem_-----'
     euv_path = glob.glob(component_repo+'*'+euv_type+'*.fits')
     if len(euv_path) > 0:
+        print('adding an euv model')
         euv = Table(fits.getdata(euv_path[0], 1))
         hdr = fits.getheader(euv_path[0], 0)
         if to_1A:

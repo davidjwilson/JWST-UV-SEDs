@@ -5,7 +5,7 @@
 
 @date 20230126
 
-Makes the WASP-63 SED
+Makes the TOI-776 SED
 """
 
 import instruments
