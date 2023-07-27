@@ -395,6 +395,33 @@ def add_phoenix_and_g430l(sed_table, component_repo, instrument_list, error_cut=
     return sed_table, instrument_list
         
     
+
+def add_phoenix(sed_table, component_repo, instrument_list, to_1A=False, ranges = [0]):
+    """
+    Adds a PHX model to fill in user-defined gaps in the SED 
+    """
+    phx_path = glob.glob(component_repo+'*phx*.fits')
+    if len(phx_path) == 1:
+        print('adding a phx model')
+        phx = Table(fits.getdata(phx_path[0], 1))
+        hdr = fits.getheader(phx_path[0], 0)
+        if to_1A:
+            print('binning {}'.format(phx_path[0]))
+            phx = bin1A.spectrum_to_const_res(phx)
+        instrument_code, phx = fill_model(phx, 'mod_phx_-----', hdr)
+        instrument_list.append(instrument_code)
+        phx = normfac_column(phx, hdr)
+        phx['FLUX'] *= hdr['NORMFAC']
+        phx['ERROR'] *= hdr['NORMFAC']
+        if ranges[0] == 0:
+            phx = phx[(phx['WAVELENGTH'] > max(sed_table['WAVELENGTH']))]            
+        else:
+            phx_mask = mask_maker(phx['WAVELENGTH'], ranges)
+            phx = phx[~phx_mask]
+        sed_table = vstack([sed_table, phx], metadata_conflicts = 'silent')
+        
+    return sed_table, instrument_list
+    
     
 def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False):
     """
