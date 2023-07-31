@@ -49,16 +49,15 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-#     sed_table, instrument_list = sed.add_phoenix_and_g430l(sed_table, path, instrument_list, remove_negs=remove_negs, to_1A=to_1A, trims=trims)
     
     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e7])
     
     sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=False)
     
-    #cutting the apec model down, fix later
-    apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)
-    gap[0] = 50
-    sed_table = sed_table[apec_mask]
+    #cutting the apec model down, fix later (fixed, wrong dem)
+#     apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)
+#     gap[0] = 40
+#     sed_table = sed_table[apec_mask]
     
     
     
@@ -67,6 +66,12 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     sed_table.sort(['WAVELENGTH'])
+    
+    #three of the adapt_var_points =0.0 for some reason, fixing it here
+    for i in range(len(sed_table['FLUX'])):
+        if sed_table['FLUX'][i] == 0.0:
+            sed_table['FLUX'][i] = np.mean(sed_table['FLUX'][i-1:i+2])
+            sed_table['ERROR'][i] = sed_table['FLUX'][i] 
     
     sed_table = sed.add_bolometric_flux(sed_table, path)
 
@@ -78,7 +83,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
     
-    plt.figure()
+    plt.figure(sed_type)
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')

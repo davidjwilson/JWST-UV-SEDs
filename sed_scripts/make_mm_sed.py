@@ -614,8 +614,11 @@ def sed_to_const_res(sed_table, res=1, start_cut=0, end_cut = 1e5):
         if np.isnan(new_flux[i]) == True:
             print('yes')
             new_flux[i] = 0.0
+#             new_flux[i] = new_flux[i+1]
         if np.isnan(new_error[i]) == True:
-            new_error[i] = 0.0
+#             new_error[i] = 0.0
+            new_error[i] = new_flux[i]
+   
 
     
     #normfac - linear extrapolation
