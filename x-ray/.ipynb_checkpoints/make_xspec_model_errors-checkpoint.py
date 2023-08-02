@@ -9,7 +9,7 @@ import astropy.units as u
 import astropy.constants as const
 from  xspec import *
 
-ntries = 10000
+ntries = 100
 
 xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'

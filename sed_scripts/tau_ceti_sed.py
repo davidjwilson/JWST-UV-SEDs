@@ -3,9 +3,9 @@
 
 @author: David Wilson
 
-@date: 20230726
+@date: 20230801
 
-Makes the WASP-121 SED
+Makes the Tau Ceti SED
 """
 
 import instruments
@@ -33,13 +33,13 @@ import instruments
 
 
 
-path = '/home/david/work/meats/SEDs/draft_hlsp/wasp-121/'  #path where the files are
+path = '/home/david/work/meats/SEDs/draft_hlsp/tau_ceti/'  #path where the files are
 
-star = 'WASP-121'
+star = 'Tau_Ceti'
 version = 1
 airglow =  [1207, 1222, 1300, 1310, 1353, 1356]
 
-trims = {'G430L':[3116, 5310], 'G140L':[1160, 1720], 'E230M':[2278, 3115], 'G750L':[5311, 10230 ]}
+trims = {'E140M':[1150, 1709], 'E230H':[2577,2840]}
 
 def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var'):
     
@@ -50,15 +50,11 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-    sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e10])
+    sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1710, 2576, 2841, 1e10])
     
-    sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=to_1A)
-    
-    #cutting the apec model down, fix later (fixed, wrong dem)
-#     apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)
-#     gap[0] = 40
-#     sed_table = sed_table[apec_mask]
-    
+    sed_table, instrument_list = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = False, find_gap=False, to_1A=to_1A)
+    #not adding apec as it's clearly spurious
+    gap = [70, 1150]
     
     
     sed_table, instrument_list = sed.add_euv(sed_table, path, instrument_list, gap, 'dem',to_1A=to_1A)
@@ -66,8 +62,9 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     sed_table.sort(['WAVELENGTH'])
+#     sed_table = sed_table[4:] #cutting off the iffy xmm point
     
-    #three of the adapt_var_points =0.0 for some reason, fixing it here
+    #some of the adapt_var_points =0.0 for some reason, fixing it here
     for i in range(len(sed_table['FLUX'])):
         if sed_table['FLUX'][i] == 0.0:
             sed_table['FLUX'][i] = np.mean(sed_table['FLUX'][i-1:i+2])

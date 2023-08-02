@@ -50,9 +50,9 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-    sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e7])
+    sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e10])
     
-    sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=False)
+    sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=to_1A)
     
     #cutting the apec model down, fix later (fixed, wrong dem)
 #     apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)

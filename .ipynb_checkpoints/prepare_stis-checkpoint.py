@@ -218,7 +218,7 @@ def get_ayres_e140m(x1ds):
     w_new, f_new, e_new, dq_new, exptime = data['wave'], data['flux'], data['photerr'], data['epsilon'], data['texpt']
     return w_new, f_new, e_new, dq_new, exptime
     
-def combine_x1ds(x1ds, correct_error=True, nclip=5):
+def combine_x1ds(x1ds, nclip, correct_error=True):
     """
     coadds a collection of x1d fluxes and adds columns for exposure time detials. Input is a list of paths to x1d files with the same grating. Also works for sx1 files
 
@@ -296,6 +296,7 @@ def combine_x1ds(x1ds, correct_error=True, nclip=5):
  
         data = fits.getdata(x1ds[0],data_extension)   
         hdr = fits.getheader(x1ds[0],0)
+        hdr1 = fits.getheader(x1ds[0],1)
         if hdr['OPT_ELEM'][0] == 'E':
             w_new, f_new, e_new, dq_new = echelle_coadd_dq(data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ'], nclip=nclip, find_ratio=False)
         else:
@@ -303,7 +304,7 @@ def combine_x1ds(x1ds, correct_error=True, nclip=5):
             w_new, f_new, e_new, dq_new = data['WAVELENGTH'], data['FLUX'], data['ERROR'], data['DQ']
         exptime, start, end = np.full(len(w_new), hdr['TEXPTIME']), np.full(len(w_new), hdr['TEXPSTRT']), np.full(len(w_new), hdr['TEXPEND'])
         if correct_error and hdr['OPT_ELEM'] in ['G140M', 'G140L']:    
-                    enew = make_person_errors(data, hdr)
+                    enew = make_person_errors(data, hdr1)
     f_new, e_new = nan_clean(f_new), nan_clean(e_new)
     w0, w1 = wavelength_edges(w_new)
     new_data = {'WAVELENGTH':w_new*u.AA,'WAVELENGTH0':w0*u.AA,'WAVELENGTH1':w1*u.AA,'FLUX':f_new*u.erg/u.s/u.cm**2/u.AA,

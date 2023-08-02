@@ -9,13 +9,16 @@ import astropy.units as u
 import astropy.constants as const
 from  xspec import *
 
-ntries = 100
+ntries = 500
 
 xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
+
 for x in xtab:
     if x['Star'] == 'Tau_Ceti':
+        plt.figure()
+        
         n = 0
         fluxes = []
         while n < ntries:
@@ -143,40 +146,44 @@ for x in xtab:
             yVals = Plot.model()
             wx = xVals*u.AA
             fx  = (yVals * (u.photon/u.s/u.cm**2/u.AA)).to(u.erg/u.s/u.cm**2/u.AA, equivalencies=u.spectral_density(wx))
-            # plt.plot(wx, fx, c='C0', alpha=0.2)
-            # plt.xlim(5, 50)
-            # plt.yscale('log')
+            plt.plot(wx, fx, alpha=0.1)
+            plt.xlim(5, 120)
+            plt.yscale('log')
 
             fluxes.append(fx[::-1])
 
             n += 1
-
-        starx = glob.glob('{}{}/*apec*{}*.fits'.format(hlsppath, x['Star'].lower(), x['Star'].lower()))
-        hlsp = False
-        if len(starx) > 0:
-            print('found the hlsp')
-            data = fits.getdata(starx[0], 1)
-            hlsp=True
-            # plt.plot(data['WAVELENGTH'], data['FLUX'], c='C1', ls='--')
-        else:
-            starx = glob.glob('../models/{}*apec*.txt'.format(x['Star'].lower()))
-            if len(starx) > 0:
-                print('found the txt')
-                hlsp= True
-                data = Table.read(starx[0], format='ascii.basic')
             
-        if hlsp:
-            fluxes = np.array(fluxes)
-            fluxmean, fluxstd = np.mean(fluxes, axis=0), np.std(fluxes, axis=0)
-            errper = fluxstd/fluxmean
-            flux_err = data['FLUX'] * errper
-            # plt.plot(data['WAVELENGTH'], flux_err, c='C2')
+    plt.show()
+            
+            
 
-            # print('SN', np.median(1/errper))
+#         starx = glob.glob('{}{}/*apec*{}*.fits'.format(hlsppath, x['Star'].lower(), x['Star'].lower()))
+#         hlsp = False
+#         if len(starx) > 0:
+#             print('found the hlsp')
+#             data = fits.getdata(starx[0], 1)
+#             hlsp=True
+#             # plt.plot(data['WAVELENGTH'], data['FLUX'], c='C1', ls='--')
+#         else:
+#             starx = glob.glob('../models/{}*apec*.txt'.format(x['Star'].lower()))
+#             if len(starx) > 0:
+#                 print('found the txt')
+#                 hlsp= True
+#                 data = Table.read(starx[0], format='ascii.basic')
+            
+#         if hlsp:
+#             fluxes = np.array(fluxes)
+#             fluxmean, fluxstd = np.mean(fluxes, axis=0), np.std(fluxes, axis=0)
+#             errper = fluxstd/fluxmean
+#             flux_err = data['FLUX'] * errper
+#             # plt.plot(data['WAVELENGTH'], flux_err, c='C2')
 
-            savdat = Table((data['WAVELENGTH']*u.AA, data['FLUX']*u.erg/u.s/u.cm**2/u.AA , flux_err*u.erg/u.s/u.cm**2/u.AA), 
-                           names=['WAVELENGTH', 'FLUX', 'ERROR'])
-            ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
+#             # print('SN', np.median(1/errper))
 
-    print('DONE')
-# plt.show()
+#             savdat = Table((data['WAVELENGTH']*u.AA, data['FLUX']*u.erg/u.s/u.cm**2/u.AA , flux_err*u.erg/u.s/u.cm**2/u.AA), 
+#                            names=['WAVELENGTH', 'FLUX', 'ERROR'])
+#             ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
+
+#     print('DONE')
+# # plt.show()

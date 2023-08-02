@@ -221,7 +221,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
 #     if len(sed_table) == 0:
 #         print('initialising SED')
 #         sed_table = dict(WAVELENGTH = []) #bit of a hack, improve later
-    stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M']
+    stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M', 'E230H']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
         stis_gratings.append('G750L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
