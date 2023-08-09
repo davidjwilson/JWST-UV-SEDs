@@ -25,10 +25,10 @@ def add_noise_to_image(im, perc=20, blur=0.5):
     im = im.filter(ImageFilter.GaussianBlur(blur))
     return im
 
-
+star = 'tau_ceti'
 
 plt.style.use('/home/david/work/misc/old-style.mplstyle')
-data = fits.getdata('draft_hlsp/wasp-121/hlsp_muscles_multi_multi_wasp-121_broadband_v1_adapt-const-res-sed.fits', 1)
+data = fits.getdata('draft_hlsp/{}/hlsp_muscles_multi_multi_{}_broadband_v1_adapt-const-res-sed.fits'.format(star, star), 1)
 w, f, e= data['WAVELENGTH'], data['FLUX'], data['ERROR']
 
 
@@ -39,23 +39,24 @@ ax.set_xscale('log')
 
 ax.set_xlabel(' '.join('WAVELENGTH')+' [ $\mathrm{\AA}$ ]')
 ax.set_ylabel('F L U X [ E R G S$^{-1}$ C M$^{-2}$ $\mathrm{\AA}^{-1}$ ]')
-ax.set_title(' '.join('WASP-121'))
+ax.set_title(' '.join('{}'.format(star.upper().replace('_',''))))
 
-labely = 7e-13
+labely = max(f)*5
 efac = 0.3
 labelfac = 1.5
 
-ax.errorbar(np.array([10,50]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
-ax.annotate(' '.join('XMM/APEC'), (22, labelfac*labely),  ha='center')
+ax.errorbar(np.array([22,70]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
+ax.annotate('XMM', (40, labelfac*labely),  ha='center')
 
-ax.errorbar(np.array([52,1120]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
-ax.annotate(' '.join('DEM'), (190, labelfac*labely))
+ax.errorbar(np.array([72,1120]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
+ax.annotate('DEM', (190, labelfac*labely))
 
-ax.errorbar(np.array([1160, 10000]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
-ax.annotate((' '.join('HST/LYA')), (3200, labelfac*labely), ha='center')
+ax.errorbar(np.array([1160, 2840]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
+ax.annotate('HST/LYA', (1800, labelfac*labely), ha='center')
 
-ax.errorbar(np.array([10300,  110000]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
-ax.annotate(' '.join('PHOENIX'), (35000, labelfac*labely), ha='center')
+ax.errorbar(np.array([2950,  105000]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
+ax.annotate('PHOENIX', (15000, labelfac*labely), ha='center')
+
 
 
 
@@ -63,19 +64,19 @@ ax.annotate(' '.join('PHOENIX'), (35000, labelfac*labely), ha='center')
 
 ax.set_facecolor('#E8DCB8')
 
-ax.set_ylim(2e-19, 9e-12)
+ax.set_ylim(min(f)*0.1, max(f)*100)
 
 fig.tight_layout()
 
 
-fig.savefig('plots/old_wasp-121.png', dpi=100, facecolor='#E8DCB8')
+fig.savefig('plots/old_{}.png'.format(star), dpi=100, facecolor='#E8DCB8')
 
 
 
 
 
 
-im = Image.open('plots/old_wasp-121.png')
+im = Image.open('plots/old_{}.png'.format(star))
 im = add_noise_to_image(im, 5)
-im.save('plots/old_wasp-121_noise.png')
+im.save('plots/old_{}_noise.png'.format(star))
 im.show()
