@@ -82,13 +82,24 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
+    if remove_negs: #fixing some weird errors that show up in the adapt_var
+        mask = (sed_table['WAVELENGTH'] >= 1175) & (sed_table['WAVELENGTH'] <= 1195) | (sed_table['WAVELENGTH'] >= 1210) & (sed_table['WAVELENGTH'] <= 1226)
+        args = np.where(mask==True)
+        new_err = np.median(sed_table['ERROR'][(sed_table['WAVELENGTH'] >= 1200) & (sed_table['WAVELENGTH'] <= 1209)])
+        sed_table['ERROR'][args] = new_err
+        
+    
     
     plt.figure(sed_type)
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')
+    plt.step(sed_table['WAVELENGTH'], sed_table['ERROR'], where='mid', alpha=0.5)
     plt.yscale('log')
+    
+#     plt.xlim(1160, 1230)
     plt.xscale('log')
+    
     
     
 #     print(sed_table.meta)
