@@ -453,7 +453,6 @@ def make_dataset_extension(x1ds):
     hdu.header.insert(9, ('EXTNO',3))
     hdu.header['COMMENT'] = description_text
     return hdu
-
     
 def make_stis_spectrum(x1dpath, version, hlsp, savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, star = '', nclip=5):
     """

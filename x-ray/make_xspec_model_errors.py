@@ -9,13 +9,13 @@ import astropy.units as u
 import astropy.constants as const
 from  xspec import *
 
-ntries = 100
+ntries = 10000
 
 xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'Tau_Ceti':
+    if x['Star'] == 'HD120411':
         n = 0
         fluxes = []
         while n < ntries:

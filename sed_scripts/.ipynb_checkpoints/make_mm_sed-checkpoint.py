@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import glob
 import astropy.io.fits as fits
 import os
-from scipy.io.idl import readsav
 from astropy.table import Table, vstack
 from astropy.io import ascii
 import astropy.units as u
@@ -36,6 +35,8 @@ from specutils.manipulation import FluxConservingResampler
 from astropy.nddata import StdDevUncertainty
 import remove_negatives as negs
 import bin_to_const as bin1A
+from dust_extinction.parameter_averages import F99
+
 cds.enable()
 
 
@@ -224,7 +225,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
     stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M', 'E230H']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
-        stis_gratings.append('G750L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
+        stis_gratings.append('G750L') 
    # g140l_path = glob.glob(component_repo+'*g140l*.ecsv')
    # g140m_path = glob.glob(component_repo+'*g140m*.ecsv')
     
@@ -508,7 +509,23 @@ def add_bolometric_flux(sed_table, component_repo):
     sed_table.meta['BOLOFLUX'] = bolo_int.value
     return sed_table
 
-
+def deredden(sed_table, Ebv, where_red, Rv=3.1):
+    """
+    Applies a reddening correction ebv in wavelength range where_red[0] to where_red[1].
+    """
+    ext = F99(Rv=Rv)
+    mask = (sed_table['WAVELENGTH'] >=where_red[0]) & (sed_table['WAVELENGTH'] <=where_red[1])
+    w = sed_table['WAVELENGTH'][mask]
+    red = 1/ext.extinguish(w*u.AA, Ebv=Ebv)
+    n = interp1d(w, red, bounds_error=False,  fill_value = 1.0,  kind='nearest')(sed_table['WAVELENGTH'])
+    sed_table['FLUX'] = sed_table['FLUX']*red 
+    sed_table['ERROR'] = sed_table['ERROR']*red 
+    sed_table['NORMFAC'] = sed_table['NORMFAC']*red
+    return sed_table
+    
+    
+    
+    
 
 # def add_bolometric_flux(sed_table, component_repo, star_params):
 #     """
