@@ -215,7 +215,7 @@ def fill_model(table, model_name, hdr):
     table['NORMFAC'] = norm_array
     return inst_code, table
 
-def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}):
+def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}, lya_max = False, Ebv=0.0):
     """
     Add the stis fuv spectra and lya model to the sed
     """
@@ -261,6 +261,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 if to_1A:
                     print('binning {}'.format(specpath))
                     data = bin1A.spectrum_to_const_res(data)
+                    
                 instrument_code, data = hst_instrument_column(data,  hdr)
                 instrument_list.append(instrument_code)
                 if grating != 'E140M':
@@ -278,10 +279,14 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     mask = mask_maker(data['WAVELENGTH'], other_airglow, include=False) #fill in airglow gaps
                     if len(sed_table) != 0:
                         mask |= (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                    elif lya_max: #use the points where the lya profile starts to become higher flux than the g140l 
+                        lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
+                        lmask = (lflux < lya['FLUX'])
+                        mask = (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < min(lya['WAVELENGTH'][lmask])) | (data['WAVELENGTH'] > max(lya['WAVELENGTH'][lmask]))                        
                     else:
                         mask |= (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0])  | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])
-                        
-                    
+                    lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
+                    lya = lya[lyamask]
                 elif grating == 'G430L':
                     if error_cut: #cut region before a rolling 30pt mean SN > 1
                         bin_width = 30
@@ -298,6 +303,10 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     data['FLUX'] = data['FLUX'] * normfac
                     data['ERROR'] = data['ERROR'] * normfac
                 data = normfac_column(data, hdr)
+                if Ebv != 0.0:
+                    data = deredden(data, Ebv)
+                    
+                
                 if grating in trims:
                     mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
                     data = data[mask]
@@ -509,20 +518,30 @@ def add_bolometric_flux(sed_table, component_repo):
     sed_table.meta['BOLOFLUX'] = bolo_int.value
     return sed_table
 
-def deredden(sed_table, Ebv, where_red, Rv=3.1):
+def deredden(data, Ebv, Rv=3.1):
     """
-    Applies a reddening correction ebv in wavelength range where_red[0] to where_red[1].
+    Applies a reddening correction ebv to a subspectrum
+    """
+    ext = F99(Rv=Rv)
+    red = 1/ext.extinguish(data['WAVELENGTH']*u.AA, Ebv=Ebv)
+    data['FLUX'] = data['FLUX']*red
+    data['ERROR'] = data['ERROR']*red 
+    data['NORMFAC'] = data['NORMFAC']*red
+    return data
+    
+def deredden_sed(sed_table, Ebv, where_red, Rv=3.1):
+    """
+    Applies a reddening correction ebv in wavelength range where_red[0] to where_red[1]. Doesn't work as I need to skip over models.
     """
     ext = F99(Rv=Rv)
     mask = (sed_table['WAVELENGTH'] >=where_red[0]) & (sed_table['WAVELENGTH'] <=where_red[1])
     w = sed_table['WAVELENGTH'][mask]
     red = 1/ext.extinguish(w*u.AA, Ebv=Ebv)
-    n = interp1d(w, red, bounds_error=False,  fill_value = 1.0,  kind='nearest')(sed_table['WAVELENGTH'])
-    sed_table['FLUX'] = sed_table['FLUX']*red 
-    sed_table['ERROR'] = sed_table['ERROR']*red 
-    sed_table['NORMFAC'] = sed_table['NORMFAC']*red
+    n = interpolate.interp1d(w, red, bounds_error=False,  fill_value = 1.0,  kind='nearest')(sed_table['WAVELENGTH'])
+    sed_table['FLUX'] = sed_table['FLUX']*n
+    sed_table['ERROR'] = sed_table['ERROR']*n 
+    sed_table['NORMFAC'] = sed_table['NORMFAC']*n
     return sed_table
-    
     
     
     

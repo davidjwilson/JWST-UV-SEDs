@@ -104,7 +104,21 @@ def make_instrument_extension(sed_table, instlist, version):
     hdu.name = 'INSTLGND'
     return hdu
     
+def add_units(sed_table):
+    """
+    Adding all the right units to the table
+    """
+    sed_table['WAVELENGTH'] = sed_table['WAVELENGTH']*u.AA
+    sed_table['WAVELENGTH0'] = sed_table['WAVELENGTH0']*u.AA
+    sed_table['WAVELENGTH1'] = sed_table['WAVELENGTH1']*u.AA
+    sed_table['FLUX'] = sed_table['FLUX']*u.erg/u.s/u.cm**2/u.AA
+    sed_table['ERROR'] = sed_table['ERROR']*u.erg/u.s/u.cm**2/u.AA
+    sed_table['EXPTIME'] = sed_table['EXPTIME']*u.s
+    sed_table['EXPSTART'] = sed_table['EXPSTART']*cds.MJD
+    sed_table['EXPEND'] = sed_table['EXPEND']*cds.MJD
     
+    
+    return sed_table
 
 
 def make_data_ext(sed_table):
@@ -129,6 +143,7 @@ def make_mm_fits(savepath, sed_table, instrument_list, version,sed_type='var'):
     """
     Saves an SED as a Mega-MUSCLES fits file
     """
+    sed_table = add_units(sed_table)
     primary_hdu = make_primary_ext(sed_table, instrument_list)
     data_ext = make_data_ext(sed_table)
     inst_ext = make_instrument_extension(sed_table, instrument_list, version)

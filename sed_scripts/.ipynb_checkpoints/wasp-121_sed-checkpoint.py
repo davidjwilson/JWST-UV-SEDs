@@ -50,7 +50,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-#     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e10])
+    sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A, ranges = [1721, 2277, 10231, 1e10])
     
     sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=to_1A)
     
@@ -112,8 +112,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
 
     
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var')
-make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
-make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
-make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
+# make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
+# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
+# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
 
 plt.show()

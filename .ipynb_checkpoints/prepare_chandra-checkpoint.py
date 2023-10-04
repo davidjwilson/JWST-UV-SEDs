@@ -47,9 +47,12 @@ def apec_to_ecsv(model_path, sed_meta, save_path):
         
 def build_chandra_data(spectrum_path, hdr0):
     w, bins, counts, counts_err, model  = np.loadtxt(spectrum_path, unpack=True, skiprows=4)
-    w0, w1 = w - bins, w+bins
     f = [fi*1.99e-8/wi for fi, wi in zip(counts,w)]
     e = (counts_err/counts)*f
+    args = np.argsort(w)
+    w, e, bins = w[args], e[args], bins[args] #files are often backwards
+    f = np.array(f)[args]
+    w0, w1 = w - bins, w+bins    
     start = np.full(len(w), (Time(hdr0['DATE-OBS']).mjd))
     end = np.full(len(w), (Time(hdr0['DATE-END']).mjd))
     exptime = np.full(len(w), ((Time(hdr0['DATE-END']).mjd - (Time(hdr0['DATE-OBS']).mjd))*u.d.to(u.s)))
@@ -67,7 +70,7 @@ def build_chandra_metadata(hdr1, new_data, hlsp):
     mid = int(len(wavelength) / 2)
     specres = wavelength[mid]
     waveres = wavelength[mid+1] - wavelength[mid]
-    start, end, exptime = np.min(new_data['EXPSTART'][new_data['EXPSTART']>0]).value, np.max(new_data['EXPEND']).value, np.max(new_data['EXPTIME']).value
+    start, end, exptime = np.min(new_data['EXPSTART'][new_data['EXPSTART']>0].value), np.max(new_data['EXPEND'].value), np.max(new_data['EXPTIME'].value)
     star = hdr1['OBJECT']
     meta_names =['TELESCOP','INSTRUME','GRATING','DETECTOR','FILTER',
                  'TARGNAME','RA_TARG','DEC_TARG','PROPOSID',

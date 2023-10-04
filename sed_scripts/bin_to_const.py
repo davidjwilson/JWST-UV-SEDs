@@ -24,7 +24,7 @@ def wavelength_edges(w):
     w1 = w + diff1/2.
     return w0, w1
 
-def spectrum_to_const_res(spectrum, res=1):
+def spectrum_to_const_res(spectrum, res=1, add_units=False):
     """
     Rebins an MUSCLES-style component spectrum to a wavelength grid with a bin size of res, default = 1A
     Expecting a MM spectrum with 
@@ -81,8 +81,10 @@ def spectrum_to_const_res(spectrum, res=1):
 
         names = spectrum.dtype.names
         # print(names)
-        new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA, new_exptime*u.s, 
-                               new_dq,new_expstart*cds.MJD, new_expend*cds.MJD], names=names, meta= spectrum.meta)
+        if add_units:
+            new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA, new_exptime*u.s,new_dq,new_expstart*cds.MJD, new_expend*cds.MJD], names=names, meta= spectrum.meta)
+        else:
+            new_spectrum = Table([new_wavelength, new_w0, new_w1, new_flux, new_error, new_exptime, new_dq,new_expstart, new_expend], names=names, meta= spectrum.meta)
         
     else: #if it's a phoenix model it breaks the data down into chunks and makes a spectrum out to 1.3e5 A, where the native resolution drops below 1A
         if spectrum['WAVELENGTH'][-1] > 10000:
@@ -120,7 +122,12 @@ def spectrum_to_const_res(spectrum, res=1):
         
         names = spectrum.dtype.names
         # print(names)
-        new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA], names=names)
+        if add_units:
+            new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA], names=names)
+        else:
+            new_spectrum = Table([new_wavelength, new_w0, new_w1, new_flux, new_error], names=names)
+            
+            
         
     return new_spectrum
 
