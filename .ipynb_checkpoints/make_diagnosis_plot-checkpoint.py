@@ -4,7 +4,8 @@ import astropy.io.fits as fits
 import os
 import glob
 
-stars = os.listdir('draft_hlsp')
+# stars = os.listdir('draft_hlsp')
+stars = ['hd120411']
 
 for star in stars:
     seds = glob.glob('draft_hlsp/{}/*multi*'.format(star))
@@ -19,7 +20,6 @@ for star in stars:
             filename = os.path.split(sed)[1]
         #     if '{}_check.pdf'.format(filename[:-5]) not in done:
             data = fits.getdata(sed, 1)
-            print(min(data['FLUX']))
             for i, name in enumerate(names[1:]):
                 plt.subplot(12, 1, i+1)
                 if i == 0:

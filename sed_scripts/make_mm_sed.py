@@ -453,9 +453,13 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
             xray = bin1A.spectrum_to_const_res(xray)
         error = xray['ERROR'] #retain error and exptime 
         exptime = xray['EXPTIME']
+        expstart = xray['EXPSTART']
+        expend = xray['EXPEND']
         instrument_code, xray = fill_model(xray, instrument_name, hdr)
         xray['ERROR'] = error
         xray['EXPTIME'] = exptime
+        xray['EXPSTART'] = expstart 
+        xray['EXPEND'] = expend  
         instrument_list.append(instrument_code)
         #xray = normfac_column(xray)
         xray_end = max(xray['WAVELENGTH'])

@@ -4,7 +4,8 @@ import astropy.io.fits as fits
 import os
 import glob
 
-stars = os.listdir('draft_hlsp')
+# stars = os.listdir('draft_hlsp')
+stars = ['hd120411']
 
 for star in stars:
     seds = glob.glob('draft_hlsp/{}/*multi*'.format(star))
