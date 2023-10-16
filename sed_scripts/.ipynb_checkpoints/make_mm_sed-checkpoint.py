@@ -1,12 +1,14 @@
 """
-@verison: 6
+@verison: 7
 
 @author: David Wilson
 
-@date 20230608
+@date 20231016
 
 The big one. Draft here, will spin off to modules as required. 
-v6 updating to use fits files, not ecsv. MEATS version
+v6 updating to use fits files, not ecsv. MEATS version.
+
+v7 added functions to add reddening, starcat files
 
 """
 
@@ -331,10 +333,6 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 
     return sed_table, instrument_list
 
-
-
-
-
     
 def residuals(scale, f, mf):
     return f - mf/scale
@@ -511,7 +509,7 @@ def add_bolometric_flux(sed_table, component_repo):
     """
     Creates and adds the bolometric flux column to the sed
     """
-    phx = Table(fits.getdata(glob.glob(component_repo+'*phx*fits')[0], 1))
+    # phx = Table(fits.getdata(glob.glob(component_repo+'*phx*fits')[0], 1))
 #     phx = Table.read(glob.glob(component_repo+'*phx*ecsv')[0])
     bolo_int = np.trapz(sed_table['FLUX'], sed_table['WAVELENGTH'])*(u.erg/u.s/u.cm**2)
 #     bolo_int = bolo_integral(sed_table,phx,star_params['Teff'])*(u.erg/u.s/u.cm**2)
@@ -547,7 +545,56 @@ def deredden_sed(sed_table, Ebv, where_red, Rv=3.1):
     sed_table['NORMFAC'] = sed_table['NORMFAC']*n
     return sed_table
     
-    
+def find_stis_header(component_repo):
+    """
+    Looks for a stis hlsp and gets the header from it to start an SED table.
+    """
+    stis_files = glob.glob('{}*stis*.fits'.format(component_repo))
+    hdr = fits.getheader(stis_files[0])
+    return hdr
+
+
+def add_starcat(sed_table, component_repo, instrument_list, trims = [1000, 5000], remove_negs=False, to_1A=False,  **kwargs):
+    """
+    Adds a starcat spectrum. For now, assume that the spectrum will be the only thing in it's wavelength range apart from Lyman alpha.
+    """
+    starcatpath = glob.glob(component_repo+'*uvsum*.fits')[0]
+    print('I found a StatCat file: {}'.format(starcatpath))
+    stardata = fits.getdata(starcatpath, 1)[0]
+    hdr = fits.getheader(starcatpath, 0)
+    data = Table([stardata['WAVE']], names =['WAVELENGTH'])
+    w0, w1 = wavelength_edges(data['WAVELENGTH'])
+    data['WAVELENGTH0'] = w0
+    data['WAVELENGTH1'] = w1
+    data['FLUX'] = stardata['FLUX']
+    data['ERROR'] = stardata['ERROR']
+    data['EXPTIME'] = np.full(len(data['WAVELENGTH']), hdr['EXPTIME'])
+    data['DQ'] = stardata['DQ']
+    data['EXPSTART'] = np.full(len(data['WAVELENGTH']), hdr['EXPSTART'])
+    data['EXPEND'] = np.full(len(data['WAVELENGTH']), hdr['EXPEND'])
+    if remove_negs:
+        print('removing negatives from {}'.format(starcatpath))
+        data = negs.make_clean_spectrum(data)
+    if to_1A:
+        print('binning {}'.format(starcatpath))
+        data = bin1A.spectrum_to_const_res(data)
+    inst_code = instruments.getinsti('starcat------')
+    data['INSTRUMENT'] = np.full(len(data['WAVELENGTH']), inst_code, dtype=int)
+    data['NORMFAC'] = np.full(len(data['WAVELENGTH']), 1.0)
+    if 'lya' in kwargs:
+        mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < lya[0]) | (data['WAVELENGTH'] > lay[1]) &  (data['WAVELENGTH'] < trims[1])
+    else:
+        mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < trims[1])
+    data = data[mask]
+    if 'Ebv' in kwargs:
+        if kwargs['Ebv'] != 0.0:
+            data = deredden(data, kwargs['Ebv'])  
+    if len(sed_table) == 0: #check if the SED is new.
+        sed_table = data
+        hlspheader = find_stis_header(component_repo)
+        sed_table.meta = dict(hlspheader)
+        
+    return sed_table, instrument_list
     
 
 # def add_bolometric_flux(sed_table, component_repo, star_params):
