@@ -25,7 +25,7 @@ def add_noise_to_image(im, perc=20, blur=0.5):
     im = im.filter(ImageFilter.GaussianBlur(blur))
     return im
 
-star = 'tau_ceti'
+star = 'kap1cet'
 
 plt.style.use('/home/david/work/misc/old-style.mplstyle')
 data = fits.getdata('draft_hlsp/{}/hlsp_muscles_multi_multi_{}_broadband_v1_adapt-const-res-sed.fits'.format(star, star), 1)
@@ -45,7 +45,7 @@ labely = max(f)*5
 efac = 0.3
 labelfac = 1.5
 
-ax.errorbar(np.array([22,70]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
+ax.errorbar(np.array([7,70]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')
 ax.annotate('XMM', (40, labelfac*labely),  ha='center')
 
 ax.errorbar(np.array([72,1120]),np.array([labely, labely]), yerr= [[efac*labely,efac*labely],[0,0]], c ='k')

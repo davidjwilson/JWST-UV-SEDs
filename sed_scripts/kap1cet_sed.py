@@ -41,11 +41,11 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table, instrument_list = sed.add_starcat(sed_table, path, instrument_list, remove_negs=remove_negs, to_1A=to_1A)
     sed_table, instrument_list = sed.add_lya(sed_table, path, instrument_list, lya_range=[1215, 1217], to_1A=to_1A)
     
-    # sed_table, instrument_list = sed.add_phoenix_and_g430l(sed_table, path, instrument_list, error_cut=True, remove_negs=remove_negs, to_1A=to_1A, trims={'G430L':[2700, 5700]})
+    sed_table, instrument_list = sed.add_phoenix_and_g430l(sed_table, path, instrument_list, error_cut=True, remove_negs=remove_negs, to_1A=to_1A, trims={'G430L':[2700, 5700]})
     
     
     
-    sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = False, 
+    sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm_rgs', add_apec = False, 
                                                             find_gap=True, to_1A=to_1A, remove_negs=remove_negs)
     sed_table = sed_table[sed_table['WAVELENGTH'] > 7] #chop of end of rgs spectrum
     if remove_negs and to_1A: #rgs spectrum gets weird ends from rebin
@@ -61,7 +61,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table = sed.add_bolometric_flux(sed_table, path)
 
-    
+    sed_table.meta['PR_INV_L'] = 'Youngblood'
+    sed_table.meta['PR_INV_F'] = 'Allison'
     
     sed_table.meta['WAVEMIN'] = min(sed_table['WAVELENGTH'])
     sed_table.meta['WAVEMAX'] = max(sed_table['WAVELENGTH'])
@@ -69,7 +70,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
     
-    plt.figure()
+    plt.figure('{}_adapt={}_const={}'.format(star, remove_negs, to_1A))
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')

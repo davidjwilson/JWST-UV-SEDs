@@ -217,6 +217,38 @@ def fill_model(table, model_name, hdr):
     table['NORMFAC'] = norm_array
     return inst_code, table
 
+def add_lya(sed_table, component_repo, instrument_list, lya_range=[], to_1A=False):
+    """
+    Add a Lya profile without a STIS spectrum needed.
+    """
+    lya_path = glob.glob(component_repo+'*lya*.fits')    
+    if len(lya_path) == 1:
+        print('adding a lya profile')
+        lya = Table(fits.getdata(lya_path[0], 1))
+        hdr = fits.getheader(lya_path[0], 0)
+        if to_1A:
+            print('binning {}'.format(lya_path[0]))
+            lya = bin1A.spectrum_to_const_res(lya)
+        instrument_code, lya = fill_model(lya, 'mod_lya_young', hdr)
+        instrument_list.append(instrument_code)
+        lya = normfac_column(lya, hdr)
+        if len(lya_range) == 0:
+            lya_range = [lya['WAVELENGTH'][0], lya['WAVELENGTH'][-1]]  
+        lyamask = (lya['WAVELENGTH'] >= lya_range[0]) & (lya['WAVELENGTH'] <= lya_range[-1])
+        lya = lya[lyamask]
+            
+        if len(sed_table) == 0: #check if the SED is new.
+                    sed_table = lya
+                    sed_table.meta = dict(hdr)
+        else:
+            mask = (sed_table['WAVELENGTH'] < lya_range[0]) | (sed_table['WAVELENGTH'] > lya_range[-1])  
+            sed_table = sed_table[mask] #remove lya range from spectrum
+            sed_table = vstack([sed_table, lya], metadata_conflicts = 'silent')
+            sed_table.sort(['WAVELENGTH'])
+        return sed_table, instrument_list
+
+    
+
 def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}, lya_max = False, Ebv=0.0):
     """
     Add the stis fuv spectra and lya model to the sed
@@ -431,12 +463,14 @@ def add_phoenix(sed_table, component_repo, instrument_list, to_1A=False, ranges 
     return sed_table, instrument_list
     
     
-def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False):
+def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False):
     """
     Adds either a Chandra or and XMM spectrum and an APEC model. Can also return the gap that the EUV/DEM will fit into.
     """
     if scope == 'xmm':
         instrument_name = 'xmm_epc_multi'
+    if scope == 'xmm_rgs':
+        instrument_name = 'xmm_rgs_-----'
     if scope == 'cxo':
         instrument_name = 'cxo_acs_-----'
     cos_start = min(sed_table['WAVELENGTH']) #save the lowest wavelength on the table before we add anything to it
@@ -446,6 +480,9 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
         print('adding an x-ray spectrum')
         xray = Table(fits.getdata(xray_path[0], 1))
         hdr = fits.getheader(xray_path[0], 0)
+        if remove_negs:
+            print('removing negatives from {}'.format(xray_path[0]))
+            xray = negs.make_clean_spectrum(xray)
         if to_1A:
             print('binning {}'.format(xray_path[0]))
             xray = bin1A.spectrum_to_const_res(xray)
@@ -559,7 +596,8 @@ def add_starcat(sed_table, component_repo, instrument_list, trims = [1000, 5000]
     Adds a starcat spectrum. For now, assume that the spectrum will be the only thing in it's wavelength range apart from Lyman alpha.
     """
     starcatpath = glob.glob(component_repo+'*uvsum*.fits')[0]
-    print('I found a StatCat file: {}'.format(starcatpath))
+    # print('I found a StatCat file: {}'.format(starcatpath))
+    print('adding a StarCat spectrum')
     stardata = fits.getdata(starcatpath, 1)[0]
     hdr = fits.getheader(starcatpath, 0)
     data = Table([stardata['WAVE']], names =['WAVELENGTH'])
@@ -578,13 +616,17 @@ def add_starcat(sed_table, component_repo, instrument_list, trims = [1000, 5000]
     if to_1A:
         print('binning {}'.format(starcatpath))
         data = bin1A.spectrum_to_const_res(data)
-    inst_code = instruments.getinsti('starcat------')
+    inst_code = instruments.getinsti('oth_---_other')
+    # print('the instrument code is', inst_code)
+    instrument_list.append(inst_code)
     data['INSTRUMENT'] = np.full(len(data['WAVELENGTH']), inst_code, dtype=int)
     data['NORMFAC'] = np.full(len(data['WAVELENGTH']), 1.0)
     if 'lya' in kwargs:
         mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < lya[0]) | (data['WAVELENGTH'] > lay[1]) &  (data['WAVELENGTH'] < trims[1])
     else:
-        mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < trims[1])
+        mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < trims[1]) 
+    data = data[mask]
+    mask = data['FLUX'] != 0.0
     data = data[mask]
     if 'Ebv' in kwargs:
         if kwargs['Ebv'] != 0.0:
