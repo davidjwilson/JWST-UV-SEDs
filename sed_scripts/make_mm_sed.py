@@ -626,7 +626,7 @@ def add_starcat(sed_table, component_repo, instrument_list, trims = [1000, 5000]
     else:
         mask = (data['WAVELENGTH'] > trims[0]) &  (data['WAVELENGTH'] < trims[1]) 
     data = data[mask]
-    mask = data['FLUX'] != 0.0
+    mask = data['FLUX'] != 0.0 #remove the gap
     data = data[mask]
     if 'Ebv' in kwargs:
         if kwargs['Ebv'] != 0.0:
