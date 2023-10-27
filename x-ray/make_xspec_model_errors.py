@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'HD120411':
+    if x['Star'] == 'GJ367':
         n = 0
         fluxes = []
         while n < ntries:
@@ -159,7 +159,7 @@ for x in xtab:
             hlsp=True
             # plt.plot(data['WAVELENGTH'], data['FLUX'], c='C1', ls='--')
         else:
-            starx = glob.glob('../models/{}*apec*.txt'.format(x['Star'].lower()))
+            starx = glob.glob('../models/{}*apec*.txt'.format(x['Star']))
             if len(starx) > 0:
                 print('found the txt')
                 hlsp= True
