@@ -639,6 +639,72 @@ def add_starcat(sed_table, component_repo, instrument_list, trims = [1000, 5000]
     return sed_table, instrument_list
     
 
+    
+def add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [0], remove_negs=False, to_1A=False,  **kwargs):
+    """
+    Adds a proxy with user-defined scale and ranges. Assume it has WAVLENGTH, FLUX and ERROR columns.
+    """
+    print('adding a proxy spectrum')
+    proxdata = fits.getdata(proxy_path, 1)
+    hdr = fits.getheader(proxy_path, 0)
+    data = Table([proxdata['WAVELENGTH']], names =['WAVELENGTH'])
+    names = proxdata.names
+    if 'WAVELENGTH0' in names and 'WAVELENGTH1' in names:
+        data['WAVELENGTH0'] = proxdata['WAVELENGTH0']
+        data['WAVELENGTH1'] = proxdata['WAVELENGTH1']
+    else:
+        w0, w1 = wavelength_edges(data['WAVELENGTH'])
+        data['WAVELENGTH0'] = w0
+        data['WAVELENGTH1'] = w1
+    data['FLUX'] = proxdata['FLUX'] * scale
+    data['ERROR'] = proxdata['ERROR'] * scale
+    if 'EXPTIME' in names:
+        data['EXPTIME'] = proxdata['EXPTIME']
+    else:
+        data['EXPTIME'] = np.full(len(data['WAVELENGTH']), hdr['EXPTIME'])
+    if 'DQ' in names:
+        data['DQ'] = proxdata['DQ']
+    else:
+        data['DQ'] = np.full(len(data['WAVELENGTH']), 0)
+    if 'EXPSTART' in names:
+        data['EXPSTART'] = proxdata['EXPSTART']
+    else:
+        data['EXPSTART'] = np.full(len(data['WAVELENGTH']), hdr['EXPSTART'])
+    if 'EXPEND' in names:
+        data['EXPEND'] = proxdata['EXPEND']
+    else:
+        data['EXPEND'] = np.full(len(data['WAVELENGTH']), hdr['EXPEND'])
+    if remove_negs:
+        print('removing negatives from {}'.format(proxy_path))
+        data = negs.make_clean_spectrum(data)
+    if to_1A:
+        print('binning {}'.format(proxy_path))
+        data = bin1A.spectrum_to_const_res(data)
+    inst_code = instruments.getinsti('oth_---_other')
+    instrument_list.append(inst_code)
+    data['INSTRUMENT'] = np.full(len(data['WAVELENGTH']), inst_code, dtype=int)
+    data['NORMFAC'] = np.full(len(data['WAVELENGTH']), scale)
+    if 'Ebv' in kwargs:
+        if kwargs['Ebv'] != 0.0:
+            data = deredden(data, kwargs['Ebv'])  
+    if len(sed_table) == 0: #check if the SED is new.
+        sed_table = data
+        hlspheader = find_stis_header(component_repo)
+        sed_table.meta = dict(hlspheader) 
+    if ranges[0] == 0:
+            data = data[(data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))]            
+    else:
+        mask = mask_maker(data['WAVELENGTH'], ranges)
+        data = data[~mask]
+
+    sed_table = vstack([sed_table, data], metadata_conflicts = 'silent')
+        
+    return sed_table, instrument_list
+    
+  
+    return sed_table, instrument_list
+
+    
 # def add_bolometric_flux(sed_table, component_repo, star_params):
 #     """
 #     Creates and adds the bolometric flux column to the sed
