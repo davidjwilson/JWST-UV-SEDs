@@ -39,24 +39,24 @@ star = 'GJ367'
 version = 1
 airglow =  [1207, 1222, 1300, 1310, 1353, 1356]
 
-trims = {'G430L':[3151, 5690], 'G230L':[1750, 3150 ]}
+trims = {'G430L':[3151, 5690], 'G230L':[1715, 3150 ]}
 
 def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var'):
     
     sed_table = []
     instrument_list = []
     
-    sed_table, instrument_list = sed.add_cos(path, airglow,  remove_negs=remove_negs,to_1A=to_1A)
+    sed_table, instrument_list = sed.add_cos(path, airglow,  remove_negs=remove_negs,to_1A=to_1A, trims={'G130M':[1080, 1363]})
     
     
     sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True)
     
     
-    proxy_path = '/media/david/2tb_ext_hd/hddata/mega_muscles/v24_hlsp/GJ674/hlsp_muscles_multi_multi_gj674_broadband_v24_var-res-sed.fits'
+    proxy_path = '/media/david/2tb_ext_hd/hddata/mega_muscles/v24_hlsp/GJ674/hlsp_muscles_hst_stis_gj674_g140l_v24_component-spec.fits'
     d_prox = 4.55
     d_star = 9.42
     scale = (d_prox/d_star)**2
-    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1367, 1750], remove_negs=remove_negs,to_1A=to_1A)
+    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1367, 1715], remove_negs=remove_negs,to_1A=to_1A)
     
     
     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A)
@@ -70,7 +70,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-    # sed_table, instrument_list = sed.add_euv(sed_table, path, instrument_list, gap, 'dem',to_1A=to_1A)
+    sed_table, instrument_list = sed.add_euv(sed_table, path, instrument_list, gap, 'dem',to_1A=to_1A)
     
     
     
@@ -117,8 +117,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
 
     
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var')
-# make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
-# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
-# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
+make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
 
 plt.show()

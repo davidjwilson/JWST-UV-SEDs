@@ -88,7 +88,7 @@ def normfac_column(table, hdr):
     table['NORMFAC'] = norm_array
     return table
 
-def add_cos(cospath, airglow, remove_negs=False, to_1A=False):
+def add_cos(cospath, airglow, remove_negs=False, to_1A=False, trims={}):
     """
     cospath is a path to where the output from prepare_cos are stored. 
     Airglow is a list of airglow regions to mask out (inculding the Lyman alpha). Defined by visual inspection of each spectrum.
@@ -113,7 +113,11 @@ def add_cos(cospath, airglow, remove_negs=False, to_1A=False):
         instrument_code, g130m = hst_instrument_column(g130m, hdr)
         g130m = normfac_column(g130m, hdr)
         instrument_list.append(instrument_code)
+        if 'G130M' in trims:
+                mask = (g130m['WAVELENGTH'] > trims['G130M'][0]) &  (g130m['WAVELENGTH'] < trims['G130M'][1])
+                g130m = g130m[mask]
         airglow_mask = mask_maker(g130m ['WAVELENGTH'], airglow)
+        
         sed_table = g130m[airglow_mask] #start the full SED table
         sed_table.meta = dict(hdr)
     else: 
@@ -166,24 +170,28 @@ def fill_cos_airglow(sed_table, airglow, instrument_list, hdr, nuv = False):
     if nuv:
         b, r = airglow[0], airglow[1]
         gap_w = np.arange(b, r+1, 1)
-        w, f = sed_table['WAVELENGTH'], sed_table['FLUX'] 
+        w, f, e = sed_table['WAVELENGTH'], sed_table['FLUX'], sed_table['ERROR'] 
         mask = (w > 1700) & (w < 2790) | (w > 2805) & (w < 3150) #cut to nuv range and remove mg ii
-        w, f = w[mask], f[mask]
+        w, f, e = w[mask], f[mask], e[mask]
         gap_f = np.polyval((np.polyfit(w,f,1)), gap_w)
+        gap_e = np.full(len(gap_w), np.median(e))
 #         print(np.mean(gap_f))
     else:
         b = airglow[::2]
         r = airglow[1::2]
         gap_w = np.array([], dtype=float)
         gap_f = np.array([], dtype=float)
+        gap_e = np.array([], dtype=float)
         for i in range(len(b)):
             mask = (sed_table['WAVELENGTH'] > b[i] - 5) & (sed_table['WAVELENGTH'] < r[i] + 5)
             wi = np.arange(b[i], r[i], 1.0)
             gap_w = np.concatenate((gap_w, wi))
             fi = np.polyval((np.polyfit(sed_table['WAVELENGTH'][mask], sed_table['FLUX'][mask], 2)), wi)
+            ei = np.full(len(wi), np.median(sed_table['ERROR'][mask]))
             gap_f = np.concatenate((gap_f, fi))
+            gap_e = np.concatenate((gap_e, ei))
     w0, w1 = wavelength_edges(gap_w)
-    fill_table = Table([gap_w*u.AA, w0*u.AA, w1*u.AA, gap_f*u.erg/u.s/u.cm**2/u.AA], names=['WAVELENGTH', 'WAVELENGTH0', 'WAVELENGTH1','FLUX'], meta={'NORMFAC': 1.0})
+    fill_table = Table([gap_w*u.AA, w0*u.AA, w1*u.AA, gap_f*u.erg/u.s/u.cm**2/u.AA, gap_e*u.erg/u.s/u.cm**2/u.AA], names=['WAVELENGTH', 'WAVELENGTH0', 'WAVELENGTH1','FLUX', 'ERROR'], meta={'NORMFAC': 1.0})
     instrument_code, fill_table = fill_model(fill_table, 'mod_gap_fill-', hdr)
     sed_table = vstack([sed_table, fill_table], metadata_conflicts = 'silent')
     instrument_list.append(instrument_code)
