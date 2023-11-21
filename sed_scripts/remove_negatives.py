@@ -12,6 +12,9 @@ from scipy.interpolate import interpolate
 Removes negative values by iterativly replacing them with the sum of the nearest two points.
 
 20211111
+
+20231120 fixed error bars calculation
+
 """
 def wavelength_edges(w):
     """
@@ -47,7 +50,7 @@ def remove_negatives(w, f, e):
             delinds.append(start)
             delinds.append(end-1)
             fi = np.sum(fn[start:end]*(w1[start:end]-w0[start:end])) / (w1[end-1] - w0[start])
-            ei = (np.sum(en[start:end]**2 * (w1[start:end]-w0[start:end])**2))**0.5                
+            ei = ((np.sum(en[start:end]**2 * (w1[start:end]-w0[start:end])**2))**0.5 ) / (w1[end-1] - w0[start])              
             wi = (w0[start]+w1[end-1])/2
             wn[minfi], fn[minfi], en[minfi] = wi, fi, ei
             delinds = np.array(delinds)

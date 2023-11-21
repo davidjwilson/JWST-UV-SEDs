@@ -5,7 +5,7 @@ import os
 import glob
 
 # stars = os.listdir('draft_hlsp')
-stars = ['kap1cet']
+stars = ['gj_367']
 
 for star in stars:
     seds = glob.glob('draft_hlsp/{}/*multi*'.format(star))

@@ -297,6 +297,10 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
 #             print(specpath)
         
             if hdr['INSTRUME'] =='STIS':
+                if grating in trims: #testing removing bad ends first
+                    mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
+                    data = data[mask]
+              
                 if remove_negs:
                     print('removing negatives from {}'.format(specpath))
                     data = negs.make_clean_spectrum(data)
@@ -349,9 +353,9 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     data = deredden(data, Ebv)
                     
                 
-                if grating in trims:
-                    mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
-                    data = data[mask]
+#                 if grating in trims:
+#                     mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
+#                     data = data[mask]
                 
                 if grating == 'E140M':
                     sed_table = data
