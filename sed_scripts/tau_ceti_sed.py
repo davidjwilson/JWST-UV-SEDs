@@ -84,6 +84,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')
+    plt.step(sed_table['WAVELENGTH'], sed_table['ERROR'], where='mid', alpha=0.5)
     plt.yscale('log')
     plt.xscale('log')
     

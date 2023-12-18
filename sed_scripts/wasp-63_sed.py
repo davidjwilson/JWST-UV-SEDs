@@ -37,7 +37,6 @@ star = 'WASP-63'
 version = 2
 
 airglow =  [1207, 1222, 1300, 1310, 1353, 1356]
-cos_gratings = ['G130M', 'G160M']
 stis_gratings = ['G140M','E140M','G140L', 'G230L', 'G230LB', 'G430L']
 
 def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var'):
@@ -45,7 +44,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     # sed_table = Table.read('{}/hlsp_muscles_hst_stis_wasp-63_g230l_v1_component-spec.ecsv'.format(path)) #it needs a sed or everything breaks, fix later
     sed_table = []
     instrument_list = []
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=True,to_1A=to_1A, do_airglow=False, trims={'G230L':[1980, 3140]}) #doing remove negatives all the time as there's only one negative flux point
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=True,to_1A=to_1A, trims={'G230L':[1980, 3140]}) #doing remove negatives all the time as there's only one negative flux point
     # print('adding phx')
     
     
@@ -64,20 +63,18 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
     
-    # plt.figure()
-    # if to_1A:
-        # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
+    plt.figure('{}_adapt={}_const={}'.format(star, remove_negs, to_1A))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')
+    plt.step(sed_table['WAVELENGTH'], sed_table['ERROR'], where='mid', alpha=0.5)
     plt.yscale('log')
     plt.xscale('log')
     
     make_fits.make_mm_fits(path, sed_table, instrument_list, version,sed_type=sed_type)
     
-    
-    # plt.show()
+
     
 
-plt.figure()    
+# plt.figure()    
     
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var')
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')

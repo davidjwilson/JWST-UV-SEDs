@@ -43,7 +43,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table = []
     instrument_list = []
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims)
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, lya_max = True)
     
     
     
@@ -75,6 +75,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))
     plt.step(sed_table['WAVELENGTH'], sed_table['FLUX'], where='mid')
+    plt.step(sed_table['WAVELENGTH'], sed_table['ERROR'], where='mid', alpha=0.5)
     plt.yscale('log')
     plt.xscale('log')
     

@@ -45,7 +45,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table = []
     instrument_list = []
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True)
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True, lya_max=True)
     
     
     
@@ -67,6 +67,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table.sort(['WAVELENGTH'])
     
+    
+    
     #three of the adapt_var_points =0.0 for some reason, fixing it here
     for i in range(len(sed_table['FLUX'])):
         if sed_table['FLUX'][i] == 0.0:
@@ -82,11 +84,11 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
-    if remove_negs: #fixing some weird errors that show up in the adapt_var
-        mask = (sed_table['WAVELENGTH'] >= 1175) & (sed_table['WAVELENGTH'] <= 1195) | (sed_table['WAVELENGTH'] >= 1210) & (sed_table['WAVELENGTH'] <= 1226)
-        args = np.where(mask==True)
-        new_err = np.median(sed_table['ERROR'][(sed_table['WAVELENGTH'] >= 1200) & (sed_table['WAVELENGTH'] <= 1209)])
-        sed_table['ERROR'][args] = new_err
+    # if remove_negs: #fixing some weird errors that show up in the adapt_var
+    #     mask = (sed_table['WAVELENGTH'] >= 1175) & (sed_table['WAVELENGTH'] <= 1195) | (sed_table['WAVELENGTH'] >= 1210) & (sed_table['WAVELENGTH'] <= 1226)
+    #     args = np.where(mask==True)
+    #     new_err = np.median(sed_table['ERROR'][(sed_table['WAVELENGTH'] >= 1200) & (sed_table['WAVELENGTH'] <= 1209)])
+    #     sed_table['ERROR'][args] = new_err
         
     
     
@@ -112,8 +114,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
 
     
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var')
-# make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
-# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
-# make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
+make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
 
 plt.show()

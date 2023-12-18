@@ -139,8 +139,10 @@ def make_clean_spectrum(spectrum, dv=0*u.km/u.s):
     new_expend = np.max([endups, enddowns], axis=0)
     
     names = spectrum.dtype.names
-    new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA, new_exptime*u.s, 
-                           new_dq,new_expstart*cds.MJD, new_expend*cds.MJD], names=names, meta= spectrum.meta)
+    # new_spectrum = Table([new_wavelength*u.AA, new_w0*u.AA, new_w1*u.AA, new_flux*u.erg/u.s/u.cm**2/u.AA, new_error*u.erg/u.s/u.cm**2/u.AA, new_exptime*u.s, 
+    #                        new_dq,new_expstart*cds.MJD, new_expend*cds.MJD], names=names, meta= spectrum.meta)
+    new_spectrum = Table([new_wavelength, new_w0, new_w1, new_flux, new_error, new_exptime, 
+                           new_dq,new_expstart, new_expend], names=names, meta= spectrum.meta)
     return new_spectrum
 
 

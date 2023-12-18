@@ -343,7 +343,8 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                         data = data[mask]
                     mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
                 else:
-                    mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                    # mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                    mask = (data['WAVELENGTH'] > 0)
                 data = data[mask]
                 if norm:
                     data['FLUX'] = data['FLUX'] * normfac
@@ -370,9 +371,9 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
         sed_table = vstack([sed_table, lya], metadata_conflicts = 'silent')
     sed_table.sort(['WAVELENGTH'])
 
-    if  uses_e140m == False and used_g140l == False:
-        print('filling COS airglow with polynomials')
-        sed_table, instrument_list = fill_cos_airglow(sed_table, other_airglow, instrument_list, hdr)
+    # if  uses_e140m == False and used_g140l == False:
+    #     print('filling COS airglow with polynomials')
+    #     sed_table, instrument_list = fill_cos_airglow(sed_table, other_airglow, instrument_list, hdr)
 
                 
     return sed_table, instrument_list
@@ -538,6 +539,8 @@ def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A
     instrument_name = 'mod_euv_young'
     if euv_type == 'dem':
         instrument_name = 'mod_dem_-----'
+    if euv_type == 'sol':
+        instrument_name = 'mod_sol_-----'
     euv_path = glob.glob(component_repo+'*'+euv_type+'*.fits')
     if len(euv_path) > 0:
         print('adding an euv model')
@@ -549,9 +552,43 @@ def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A
         instrument_code, euv = fill_model(euv, instrument_name, hdr)
         instrument_list.append(instrument_code)
         euv = normfac_column(euv, hdr)
+        if euv_type == 'sol':
+            euv['FLUX'] = euv['FLUX']*euv['NORMFAC']
+            euv['ERROR'] = euv['ERROR']*euv['NORMFAC']
         euv = euv[(euv['WAVELENGTH'] > euv_gap[0]) & (euv['WAVELENGTH'] < euv_gap[1])]
         sed_table = vstack([sed_table, euv], metadata_conflicts = 'silent')
     return sed_table, instrument_list
+
+# def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A=False):
+#     """
+#     Add the euv portion of the spectrum, either a Linsky_14 estmation, a DEM or a Solar Proxy.
+#     """
+#     instrument_name = 'mod_euv_young'
+#     if euv_type == 'dem':
+#         instrument_name = 'mod_dem_-----'
+#     if euv_type == 'sol':
+#         instrument_name = 'mod_sol_-----'
+#     euv_path = glob.glob(component_repo+'*'+euv_type+'*.ecsv')
+#     if len(euv_path) > 0:
+#         if 
+#         # euv = Table.read(euv_path[0])
+#         euv = Table(fits.getdata(euv_path[0], 1))
+#         hdr = fits.getheader(euv_path[0], 0)
+#         if to_1A:
+#             print('binning {}'.format(euv_path[0]))
+#             euv = bin1A.spectrum_to_const_res(euv)
+#         instrument_code, euv = fill_model(euv, instrument_name)
+#         instrument_list.append(instrument_code)
+#         euv = normfac_column(euv)
+#         if euv_type == 'sol':
+#             euv['FLUX'] = euv['FLUX']*euv['NORMFAC']
+#             euv['ERROR'] = euv['ERROR']*euv['NORMFAC']
+            
+        
+#         euv = euv[(euv['WAVELENGTH'] > euv_gap[0]) & (euv['WAVELENGTH'] < euv_gap[1])]
+#         sed_table = vstack([sed_table, euv], metadata_conflicts = 'silent')
+#     return sed_table, instrument_list
+
 
 
 def add_bolometric_flux(sed_table, component_repo):
@@ -574,7 +611,7 @@ def deredden(data, Ebv, Rv=3.1):
     Applies a reddening correction ebv to a subspectrum
     """
     ext = F99(Rv=Rv)
-    red = 1/ext.extinguish(data['WAVELENGTH']*u.AA, Ebv=Ebv)
+    red = (1/ext.extinguish((data['WAVELENGTH'].value)*u.AA, Ebv=Ebv))
     data['FLUX'] = data['FLUX']*red
     data['ERROR'] = data['ERROR']*red 
     data['NORMFAC'] = data['NORMFAC']*red
@@ -587,7 +624,7 @@ def deredden_sed(sed_table, Ebv, where_red, Rv=3.1):
     ext = F99(Rv=Rv)
     mask = (sed_table['WAVELENGTH'] >=where_red[0]) & (sed_table['WAVELENGTH'] <=where_red[1])
     w = sed_table['WAVELENGTH'][mask]
-    red = 1/ext.extinguish(w*u.AA, Ebv=Ebv)
+    red = 1/ext.extinguish(w*u.AA, Ebv=Ebv).value
     n = interpolate.interp1d(w, red, bounds_error=False,  fill_value = 1.0,  kind='nearest')(sed_table['WAVELENGTH'])
     sed_table['FLUX'] = sed_table['FLUX']*n
     sed_table['ERROR'] = sed_table['ERROR']*n 
