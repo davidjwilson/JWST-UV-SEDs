@@ -19,6 +19,8 @@ def make_primary_header(hdr, sed_table, instrument_list):
     hdr.append(('INSTRUME', 'MULTI'))
     hdr.append(('GRATING', 'MULTI'))
     for i in range(len(telescopes)):
+        if telescopes[i].upper() == 'MOD': #fix for consistancey with MUSCLES
+            telescopes[i] = 'MODEL' 
         hdr.append(('TELESC{:02.0f}'.format(i), telescopes[i].upper()))
         hdr.append(('INSTRU{:02.0f}'.format(i), instrus[i].upper()))
         hdr.append(('GRATIN{:02.0f}'.format(i), gratings[i].upper()))

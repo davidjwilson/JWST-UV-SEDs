@@ -71,7 +71,8 @@ def make_cos_dqs(w_new, x1dpath):
         dqi = interpolate.interp1d(w, dq, kind='nearest',bounds_error=False, fill_value=0.)(w_new)
         dqs.append(dqi)
     dq_new = np.array(dqs, dtype=int)
-    dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(w_new))]
+    if len(x1ds) > 1:
+        dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(w_new))]
     return(dq_new)
     
 def make_cos_arrays(w_new, x1dpath):
@@ -83,6 +84,7 @@ def make_cos_arrays(w_new, x1dpath):
     start = []
     end = []
     x1ds = glob.glob('{}*x1dsum.fits'.format(x1dpath))
+    print(x1ds)
     for x in x1ds:
         data = fits.getdata(x, 1)
         hdr = fits.getheader(x,1)
@@ -99,16 +101,16 @@ def make_cos_arrays(w_new, x1dpath):
         start.append(starti)
         end.append(endi)
 
-        
-
-        
     dq_new = np.array(dqs, dtype=int)
-    dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(w_new))]
+    if len(x1ds) > 1:
+        dq_new = [(np.sum(np.unique(dq_new[:,i]))) for i in range(len(w_new))]
+    else:
+        dq_new = dq_new[0]
     exptimes = np.sum(exptimes, axis = 0)
     start = np.min(np.ma.masked_array(start, mask=[np.array(start) == 0.]), axis=0).filled(0)
     end = np.max(np.array(end), axis=0)
     
-    print(len(dq_new), len(exptimes), len(start), len(end))
+    # print(len(dq_new), len(exptimes), len(start), len(end))
     return dq_new, exptimes, start, end
     
 

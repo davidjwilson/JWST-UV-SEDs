@@ -19,6 +19,8 @@ def make_primary_header(hdr, sed_table, instrument_list):
     hdr.append(('INSTRUME', 'MULTI'))
     hdr.append(('GRATING', 'MULTI'))
     for i in range(len(telescopes)):
+        if telescopes[i].upper() == 'MOD': #fix for consistancey with MUSCLES
+            telescopes[i] = 'MODEL' 
         hdr.append(('TELESC{:02.0f}'.format(i), telescopes[i].upper()))
         hdr.append(('INSTRU{:02.0f}'.format(i), instrus[i].upper()))
         hdr.append(('GRATIN{:02.0f}'.format(i), gratings[i].upper()))
@@ -114,8 +116,9 @@ def add_units(sed_table):
     sed_table['FLUX'] = sed_table['FLUX']*u.erg/u.s/u.cm**2/u.AA
     sed_table['ERROR'] = sed_table['ERROR']*u.erg/u.s/u.cm**2/u.AA
     sed_table['EXPTIME'] = sed_table['EXPTIME']*u.s
-    sed_table['EXPSTART'] = sed_table['EXPSTART']*u.s
-    sed_table['EXPEND'] = sed_table['EXPEND']*u.s
+    sed_table['EXPSTART'] = sed_table['EXPSTART']*cds.MJD
+    sed_table['EXPEND'] = sed_table['EXPEND']*cds.MJD
+    
     
     return sed_table
 
