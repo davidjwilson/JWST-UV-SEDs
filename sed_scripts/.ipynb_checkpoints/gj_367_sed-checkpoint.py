@@ -5,7 +5,7 @@
 
 @date: 20230726
 
-Makes the WASP-121 SED
+Makes the GJ367 SED
 """
 
 import instruments
