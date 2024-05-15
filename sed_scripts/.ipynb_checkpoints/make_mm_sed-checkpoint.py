@@ -172,9 +172,9 @@ def fill_cos_airglow(sed_table, airglow, instrument_list, hdr, nuv = False):
         gap_w = np.arange(b, r+1, 1)
         w, f, e = sed_table['WAVELENGTH'], sed_table['FLUX'], sed_table['ERROR'] 
         mask = (w > 1700) & (w < 2790) | (w > 2805) & (w < 3150) #cut to nuv range and remove mg ii
-        w, f, e = w[mask], f[mask], e[mask]
+        w, f = w[mask], f[mask]
         gap_f = np.polyval((np.polyfit(w,f,1)), gap_w)
-        gap_e = np.full(len(gap_w), np.median(e))
+        gap_e = np.full(len(gap_w), np.median(e[mask]))
 #         print(np.mean(gap_f))
     else:
         b = airglow[::2]
@@ -187,9 +187,10 @@ def fill_cos_airglow(sed_table, airglow, instrument_list, hdr, nuv = False):
             wi = np.arange(b[i], r[i], 1.0)
             gap_w = np.concatenate((gap_w, wi))
             fi = np.polyval((np.polyfit(sed_table['WAVELENGTH'][mask], sed_table['FLUX'][mask], 2)), wi)
-            ei = np.full(len(wi), np.median(sed_table['ERROR'][mask]))
             gap_f = np.concatenate((gap_f, fi))
+            ei = np.full(len(wi), np.median(sed_table['ERROR'][mask]))
             gap_e = np.concatenate((gap_e, ei))
+            
     w0, w1 = wavelength_edges(gap_w)
     fill_table = Table([gap_w*u.AA, w0*u.AA, w1*u.AA, gap_f*u.erg/u.s/u.cm**2/u.AA, gap_e*u.erg/u.s/u.cm**2/u.AA], names=['WAVELENGTH', 'WAVELENGTH0', 'WAVELENGTH1','FLUX', 'ERROR'], meta={'NORMFAC': 1.0})
     instrument_code, fill_table = fill_model(fill_table, 'mod_gap_fill-', hdr)
