@@ -257,22 +257,14 @@ def add_lya(sed_table, component_repo, instrument_list, lya_range=[], to_1A=Fals
         return sed_table, instrument_list
 
     
-
 def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}, lya_max = False, Ebv=0.0):
     """
     Add the stis fuv spectra and lya model to the sed
     """
-#     if len(sed_table) == 0:
-#         print('initialising SED')
-#         sed_table = dict(WAVELENGTH = []) #bit of a hack, improve later
     stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M', 'E230H']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
         stis_gratings.append('G750L') 
-   # g140l_path = glob.glob(component_repo+'*g140l*.ecsv')
-   # g140m_path = glob.glob(component_repo+'*g140m*.ecsv')
-    
-    lya = dict(WAVELENGTH = [10000, 0]) #filler for the star that doesn't have a lya measurement 
     lya_path = glob.glob(component_repo+'*lya*.fits')
         
     if len(lya_path) == 1:
@@ -294,21 +286,16 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
             print('adding {} spectrum'.format(grating))
             data= Table(fits.getdata(specpath[0], 1))
             hdr = fits.getheader(specpath[0], 0)
-#             print(grating)
-#             print(specpath)
-        
             if hdr['INSTRUME'] =='STIS':
-                if grating in trims: #testing removing bad ends first
+                if grating in trims: 
                     mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
                     data = data[mask]
-              
                 if remove_negs:
                     print('removing negatives from {}'.format(specpath))
                     data = negs.make_clean_spectrum(data)
                 if to_1A:
                     print('binning {}'.format(specpath))
                     data = bin1A.spectrum_to_const_res(data)
-                    
                 instrument_code, data = hst_instrument_column(data,  hdr)
                 instrument_list.append(instrument_code)
                 if grating != 'E140M':
@@ -318,7 +305,6 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 if grating == 'E140M':
                     uses_e140m = True
                     mask = (data['WAVELENGTH'] > 1160) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1]) 
-
                 elif grating == 'G140M':
                     mask = (data['WAVELENGTH'] > lya_range[0]) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1]) & (data['WAVELENGTH'] < lya_range[1])
                 elif grating == 'G140L':
@@ -326,15 +312,16 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     mask = mask_maker(data['WAVELENGTH'], other_airglow, include=False) #fill in airglow gaps
                     if len(sed_table) != 0:
                         mask |= (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
-                    elif lya_max: #use the points where the lya profile starts to become higher flux than the g140l 
-                        lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
-                        lmask = (lflux < lya['FLUX'])
-                        mask = (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < min(lya['WAVELENGTH'][lmask])) | (data['WAVELENGTH'] > max(lya['WAVELENGTH'][lmask]))                        
-                    else:
-                        mask |= (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0])  | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])
+                if lya_max: #use the points where the lya profile starts to become higher flux than the g140l 
+                    lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
+                    lmask = (lflux < lya['FLUX'])
+                    mask = (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < min(lya['WAVELENGTH'][lmask])) | (data['WAVELENGTH'] > max(lya['WAVELENGTH'][lmask]))  
                     lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
                     lya = lya[lyamask]
-                elif grating == 'G430L':
+               
+                else:
+                    mask |= (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0])  | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])
+                if grating == 'G430L':
                     if error_cut: #cut region before a rolling 30pt mean SN > 1
                         bin_width = 30
                         w, f, e = data['WAVELENGTH'], data['FLUX'], data['ERROR']
