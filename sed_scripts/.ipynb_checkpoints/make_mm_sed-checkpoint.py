@@ -120,6 +120,7 @@ def add_cos(cospath, airglow, remove_negs=False, to_1A=False, trims={}):
         
         sed_table = g130m[airglow_mask] #start the full SED table
         sed_table.meta = dict(hdr)
+        print('adding COS G130M spectrum')
     else: 
         sed_table = {'Message':'nothing here yet, this star uses E140M'}
     
@@ -138,6 +139,8 @@ def add_cos(cospath, airglow, remove_negs=False, to_1A=False, trims={}):
         g160m = normfac_column(g160m, hdr)
         g160m = g160m[g160m['WAVELENGTH'] > sed_table['WAVELENGTH'][-1]] #cut off everything covered by g130m
         sed_table = vstack([sed_table, g160m], metadata_conflicts = 'silent')
+        print('adding COS G160M spectrum')
+        
       
     if len(g230l_path) > 0:
         g230l = Table(fits.getdata(g230l_path[0], 1))
@@ -276,10 +279,11 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
         instrument_code, lya = fill_model(lya, 'mod_lya_young', hdr)
         instrument_list.append(instrument_code)
         lya = normfac_column(lya, hdr)
-        lya_range = [lya['WAVELENGTH'][0], lya['WAVELENGTH'][-1]]
+        # lya_range = [lya['WAVELENGTH'][0], lya['WAVELENGTH'][-1]]
     normfac = 1.0
     uses_e140m = False #if nether present fill in COS airglow with a polynomial
     used_g140l = False
+    uses_g140m = False
     for grating in stis_gratings:
         specpath = glob.glob('{}*{}_v*.fits'.format(component_repo, grating.lower()))  
         if len(specpath) == 1:
@@ -304,24 +308,20 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     update_norm(specpath[0], normfac)
                 if grating == 'E140M':
                     uses_e140m = True
-                    mask = (data['WAVELENGTH'] > 1160) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1]) 
+                    mask = (data['WAVELENGTH'] > 1160)
                 elif grating == 'G140M':
-                    mask = (data['WAVELENGTH'] > lya_range[0]) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1]) & (data['WAVELENGTH'] < lya_range[1])
+                    print(lya_range)
+                    mask = (data['WAVELENGTH'] > lya_range[0]) & (data['WAVELENGTH'] < lya_range[1])
+                    print('g140m check', len(data['WAVELENGTH']), len(data['WAVELENGTH'][mask]))
+                
                 elif grating == 'G140L':
                     used_g140l = True
                     mask = mask_maker(data['WAVELENGTH'], other_airglow, include=False) #fill in airglow gaps
                     if len(sed_table) != 0:
                         mask |= (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
-                if lya_max: #use the points where the lya profile starts to become higher flux than the g140l 
-                    lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
-                    lmask = (lflux < lya['FLUX'])
-                    mask = (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < min(lya['WAVELENGTH'][lmask])) | (data['WAVELENGTH'] > max(lya['WAVELENGTH'][lmask]))  
-                    lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
-                    lya = lya[lyamask]
-               
-                else:
-                    mask |= (data['WAVELENGTH'] > 0) & (data['WAVELENGTH'] < lya['WAVELENGTH'][0])  | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])
-                if grating == 'G430L':
+                    else:
+                        mask |= (data['WAVELENGTH'] > 0)
+                elif grating == 'G430L':
                     if error_cut: #cut region before a rolling 30pt mean SN > 1
                         bin_width = 30
                         w, f, e = data['WAVELENGTH'], data['FLUX'], data['ERROR']
@@ -334,6 +334,11 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     # mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
                     mask = (data['WAVELENGTH'] > 0)
                 data = data[mask]
+            
+
+
+
+            
                 if norm:
                     data['FLUX'] = data['FLUX'] * normfac
                     data['ERROR'] = data['ERROR'] * normfac
@@ -356,6 +361,13 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     sed_table = vstack([sed_table, data], metadata_conflicts = 'silent')
     if len(lya_path) == 1:    #lya needs to be added after e140m  
         print('adding a lya reconstruction')
+        if lya_max and (sed_table['WAVELENGTH'][0] < lya['WAVELENGTH'][0]) and (sed_table['WAVELENGTH'][-1] > lya['WAVELENGTH'][-1]): #remove edges of the lya model that may be < data
+            lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
+            lmask = (lflux < lya['FLUX'])
+            lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
+            lya = lya[lyamask] 
+        mask = (sed_table['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (sed_table['WAVELENGTH'] > lya['WAVELENGTH'][-1])
+        sed_table = sed_table[mask] #clear the gap for lya
         sed_table = vstack([sed_table, lya], metadata_conflicts = 'silent')
     sed_table.sort(['WAVELENGTH'])
 
