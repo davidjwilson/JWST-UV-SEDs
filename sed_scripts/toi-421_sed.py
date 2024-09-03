@@ -3,9 +3,9 @@
 
 @author: David Wilson
 
-@date: 20240515
+@date: 20240903
 
-Makes the Kepler-51 SED. Kap1Ceti proxy
+Makes the TOI-421 SED
 """
 
 import instruments
@@ -33,46 +33,34 @@ import instruments
 
 
 
-path = '/home/david/work/meats/SEDs/draft_hlsp/kepler-51/'  #path where the files are
+path = '/home/david/work/meats/SEDs/draft_hlsp/toi-421/'  #path where the files are
 
-star = 'kepler-51'
+star = 'TOI-421'
 version = 1
 airglow =  [1207, 1222, 1300, 1310, 1353, 1356]
 
-trims = {'G430L':[3162, 5690], 'G230L':[2101, 3161 ]}
+trims = {'G430L':[3161, 5690], 'G230L':[1711, 3160 ], 'G140L':[1160, 1710]}
 
 def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var'):
     
     sed_table = []
     instrument_list = []
     
+    # sed_table, instrument_list = sed.add_cos(path, airglow,  remove_negs=remove_negs,to_1A=to_1A, trims={'G130M':[1080, 1363]})
     
     
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True, Ebv=0.035)
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, [1212, 1220], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True, lya_max=False,  Ebv=0.06)
     
-    
-    proxy_path = '/home/david/work/meats/SEDs/draft_hlsp/kappa1_ceti/hlsp_muscles_multi_multi_kap1cet_broadband_v1_{}-res-sed.fits'.format(sed_type)
+    proxy_path = '/home/david/work/meats/SEDs/draft_hlsp/tau_ceti/hlsp_muscles_multi_multi_tau_ceti_broadband_v1_{}-res-sed.fits'.format(sed_type)
 
-    d_kap = 9.2762
-    d_k51 = 783.626 # updated distance 
-    scale = (d_kap/d_k51)**2
-    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1, 2100, 2790, 2810], remove_negs=False,to_1A=False)
-    
+    d_prox = 3.65
+    d_star = 74.96 # updated distance 
+    scale = (d_prox/d_star)**2
+    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1, 1159], remove_negs=False,to_1A=False)
     
     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A)
     
-    # sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=to_1A)
-    
-    #cutting the apec model down, fix later (fixed, wrong dem)
-#     apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)
-#     gap[0] = 40
-#     sed_table = sed_table[apec_mask]
-    
-    
-    
-    # sed_table, instrument_list = sed.add_euv(sed_table, path, instrument_list, gap, 'dem',to_1A=to_1A)
-    
-    
+  
     
     sed_table.sort(['WAVELENGTH'])
     
@@ -87,7 +75,14 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
-
+    # if remove_negs: #fixing some weird errors that show up in the adapt_var
+    #     mask = (sed_table['WAVELENGTH'] >= 1175) & (sed_table['WAVELENGTH'] <= 1195) | (sed_table['WAVELENGTH'] >= 1210) & (sed_table['WAVELENGTH'] <= 1226)
+    #     args = np.where(mask==True)
+    #     new_err = np.median(sed_table['ERROR'][(sed_table['WAVELENGTH'] >= 1200) & (sed_table['WAVELENGTH'] <= 1209)])
+    #     sed_table['ERROR'][args] = new_err
+        
+    
+    
     plt.figure(sed_type)
     # if to_1A:
         # print(np.unique(np.diff(sed_table['WAVELENGTH'])))

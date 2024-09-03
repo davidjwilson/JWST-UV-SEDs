@@ -48,7 +48,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True, Ebv=0.06)
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True, Ebv=0.035)
     
     
     proxy_path = '/home/david/work/meats/SEDs/draft_hlsp/kappa1_ceti/hlsp_muscles_multi_multi_kap1cet_broadband_v1_{}-res-sed.fits'.format(sed_type)

@@ -264,7 +264,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
     """
     Add the stis fuv spectra and lya model to the sed
     """
-    stis_gratings = ['E140M', 'G140M','G140L', 'G230L', 'G230LB', 'E230M', 'E230H']
+    stis_gratings = ['E140M', 'G140L','G140M', 'G230L', 'G230LB', 'E230M', 'E230H']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
         stis_gratings.append('G750L') 
@@ -312,7 +312,10 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                 elif grating == 'G140M':
                     print(lya_range)
                     mask = (data['WAVELENGTH'] > lya_range[0]) & (data['WAVELENGTH'] < lya_range[1])
-                    print('g140m check', len(data['WAVELENGTH']), len(data['WAVELENGTH'][mask]))
+                    # print('g140m check', len(data['WAVELENGTH']), len(data['WAVELENGTH'][mask]))
+                    if len(sed_table) != 0: #cut a gap for the G140M spectrum
+                        sed_mask =  (sed_table['WAVELENGTH'] < lya_range[0]) | (sed_table['WAVELENGTH'] > lya_range[1])
+                        sed_table = sed_table[sed_mask]
                 
                 elif grating == 'G140L':
                     used_g140l = True
