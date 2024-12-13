@@ -5,10 +5,10 @@ import os
 import glob
 
 # stars = os.listdir('draft_hlsp')
-stars = ['toi-421']
+stars = ['toi-134']
 
 for star in stars:
-    seds = glob.glob('draft_hlsp/{}/*multi*'.format(star))
+    seds = glob.glob('fixed_hlsp/{}/*multi*'.format(star))
     if len(seds) > 0:
         print(star)
         names=fits.getdata(seds[0], 1).names

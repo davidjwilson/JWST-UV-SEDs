@@ -310,7 +310,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     uses_e140m = True
                     mask = (data['WAVELENGTH'] > 1160)
                 elif grating == 'G140M':
-                    print(lya_range)
+                    # print(lya_range)
                     mask = (data['WAVELENGTH'] > lya_range[0]) & (data['WAVELENGTH'] < lya_range[1])
                     # print('g140m check', len(data['WAVELENGTH']), len(data['WAVELENGTH'][mask]))
                     if len(sed_table) != 0: #cut a gap for the G140M spectrum

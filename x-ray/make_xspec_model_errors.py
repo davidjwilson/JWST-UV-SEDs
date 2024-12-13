@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'TOI-836':
+    if x['Star'] == 'TOI-134':
         n = 0
         fluxes = []
         while n < ntries:
@@ -87,8 +87,8 @@ for x in xtab:
                     kt2 = x['kt2']
                 else:
                     kt2 = np.random.normal(x['kt2'], np.mean([x['kt2eu'], x['kt2el']]))
-                    if kt1 < 0.008:
-                        kt1 = 0.008
+                    if kt2 < 0.008:
+                        kt2 = 0.008
                 abd, nh = x['abd'], x['nh'] * 0.01
                 # fx, kt1, kt2, abd, nh = x['fx'], x['kt1'], x['kt2'], x['abd'], x['nh']*0.01
 
@@ -169,7 +169,7 @@ for x in xtab:
             fluxes = np.array(fluxes)
             fluxmean, fluxstd = np.mean(fluxes, axis=0), np.std(fluxes, axis=0)
             errper = fluxstd/fluxmean
-            flux_err = data['FLUX'] * errper
+            flux_err = data['FLUX'] * errper 
             # plt.plot(data['WAVELENGTH'], flux_err, c='C2')
 
             # print('SN', np.median(1/errper))

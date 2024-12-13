@@ -44,7 +44,7 @@ def spectra_adder(f_array, e_array, scale_correct=True):
     if scale_correct:
         error = (var * rcs)**0.5
     else:
-        error = var**2
+        error = var**0.5
     return flux,error
 
 def echelle_coadd_dq(wavelength, flux, err, dq, nclip =5, find_ratio =True, dq_adjust=False, dq_cut =0):
