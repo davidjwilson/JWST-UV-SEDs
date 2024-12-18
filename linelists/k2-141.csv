@@ -1,0 +1,35 @@
+Header,Value,Description
+DATE,2024-08-08,date flux was calculated
+FILENAME,spectra/hlsp_muscles_hst_stis_k2-141_g140l_v1_component-spec.fits,name of the fits file used to for flux calc
+FILETYPE,SCI,observation type of fits input file
+TELESCP,HST,telescope used to measure spectrum
+INSTRMNT,STIS,active instrument to measure spectrum
+GRATING,G140L,grating used to measure spectrum
+TARGNAME,K2-141,name of star used in measurement
+DOPPLER,-129.69901088792815 km/s,doppler shift used to measure flux
+WIDTH,+/- 7.0 Angstroms,average peak width of the emissoin lines
+RANGE,+/- 14.0 Angstroms,flux range used to isolate emission line
+WIDTHPXL,12,average emission line peak width in pixels
+UPRLIMIT,3*error,upper limit used for noise
+
+Ion,Rest Wavelength,Flux,Error,Blended Line
+C III,1176.372,-2.0867145860927592e-16,0,True
+Si III,1206.499,-1.922916032177492e-15,0,False
+Si III,1303.323,-2.8120236189153505e-16,0,True
+O V,1218.39,-5.2747805356681076e-15,0,False
+O V,1371.292,-3.948893250671758e-17,0,False
+N V,1242.804,3.07629331588611e-16,3.6085819360211254e-17,True
+S II,1259.519,-6.98102124605734e-17,0,True
+Si II,1265.001,-7.32219715635073e-17,0,True
+Si II,1304.369,-2.788397454079054e-16,0,False
+Si II,1533.43,-1.1770035144119087e-16,0,True
+C II,1323.952,-5.018801315853667e-17,0,True
+C II,1335.709,6.7856250251172e-16,1.1926007520587342e-16,True
+Fe XXI,1354.08,-5.525349689454043e-17,0,False
+Si IV,1402.77,4.451594712087933e-16,4.396066523030401e-17,True
+O IV,1407.383,2.240530716372917e-16,3.9039921403249516e-17,True
+S IV,1406.016,-7.006589839302662e-17,0,True
+N IV,1486.496,-4.686466645475827e-17,0,False
+C IV,1550.772,1.1063534660289433e-15,1.720953609114267e-16,True
+He II,1640.42,4.364302361050081e-16,1.7791327896256342e-16,False
+O III,1666.142,-2.7053738517940717e-16,0,False

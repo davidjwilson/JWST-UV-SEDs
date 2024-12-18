@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'TOI-134':
+    if x['Star'] == 'WASP-166':
         n = 0
         fluxes = []
         while n < ntries:
@@ -176,7 +176,15 @@ for x in xtab:
 
             savdat = Table((data['WAVELENGTH']*u.AA, data['FLUX']*u.erg/u.s/u.cm**2/u.AA , flux_err*u.erg/u.s/u.cm**2/u.AA), 
                            names=['WAVELENGTH', 'FLUX', 'ERROR'])
-            ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
+        
+        else:
+            wavelength = wx[::-1]
+            fluxes = np.array(fluxes)
+            fluxmean, fluxstd = np.mean(fluxes, axis=0), np.std(fluxes, axis=0)
+            savdat = Table((wavelength*u.AA, fluxmean*u.erg/u.s/u.cm**2/u.AA , fluxstd*u.erg/u.s/u.cm**2/u.AA), 
+                           names=['WAVELENGTH', 'FLUX', 'ERROR'])
+        ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
+        
 
     print('DONE')
 # plt.show()

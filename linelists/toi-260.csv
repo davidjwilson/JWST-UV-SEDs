@@ -1,0 +1,25 @@
+Header,Value,Description
+DATE,2024-08-28,date flux was calculated
+FILENAME,spectra/hlsp_muscles_hst_cos_toi-260_g130m_v1_component-spec.fits,name of the fits file used to for flux calc
+FILETYPE,SCI,observation type of fits input file
+TELESCP,HST,telescope used to measure spectrum
+INSTRMNT,COS,active instrument to measure spectrum
+GRATING,G130M,grating used to measure spectrum
+TARGNAME,TOI-260,name of star used in measurement
+DOPPLER,-17.689180230719717 km/s,doppler shift used to measure flux
+WIDTH,+/- 0.7 Angstroms,average peak width of the emissoin lines
+RANGE,+/- 1.4 Angstroms,flux range used to isolate emission line
+WIDTHPXL,70,average emission line peak width in pixels
+UPRLIMIT,3*error,upper limit used for noise
+
+Ion,Rest Wavelength,Flux,Error,Blended Line
+C III,1176.372,3.558662908397126e-16,3.524759100167594e-17,True
+Si III,1206.499,3.478777193850887e-16,3.78828242749379e-17,False
+Si III,1303.323,-9.589278872525348e-15,0,True
+N V,1242.804,1.998109232311532e-16,3.621949577168264e-17,True
+S II,1259.519,-1.0012076989148662e-16,0,True
+Si II,1265.001,2.0398572675122358e-16,3.62531824570568e-17,True
+Si II,1304.369,-8.023229847702387e-15,0,False
+C II,1323.952,-4.901023635018478e-17,0,True
+C II,1335.709,8.896424870597181e-16,5.331373258285788e-17,True
+Fe XXI,1354.08,-4.6585397505709096e-17,0,False
