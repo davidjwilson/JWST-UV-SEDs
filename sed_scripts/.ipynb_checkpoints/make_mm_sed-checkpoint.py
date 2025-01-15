@@ -535,7 +535,7 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
     else:
         return sed_table, instrument_list
     
-def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A=False):
+def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A=False, norm=0.0):
     """
     Add the euv portion of the spectrum, either a Linsky_14 estmation or a DEM.
     """
@@ -558,6 +558,10 @@ def add_euv(sed_table, component_repo, instrument_list, euv_gap, euv_type, to_1A
         if euv_type == 'sol':
             euv['FLUX'] = euv['FLUX']*euv['NORMFAC']
             euv['ERROR'] = euv['ERROR']*euv['NORMFAC']
+        if norm != 0.0: #when I'm putting in a proxy dem
+            euv['FLUX'] = euv['FLUX']*norm
+            euv['ERROR'] = euv['ERROR']*norm
+            euv['NORMFAC'] = euv['NORMFAC']*norm
         euv = euv[(euv['WAVELENGTH'] > euv_gap[0]) & (euv['WAVELENGTH'] < euv_gap[1])]
         sed_table = vstack([sed_table, euv], metadata_conflicts = 'silent')
     return sed_table, instrument_list

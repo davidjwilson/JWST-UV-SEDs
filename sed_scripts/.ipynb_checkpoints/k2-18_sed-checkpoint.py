@@ -51,12 +51,20 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, optical=True)
     
     
-    proxy_path = '/media/david/2tb_ext_hd/hddata/mega_muscles/muscles_hlsp/gj832/hlsp_muscles_multi_multi_gj832_broadband_v22_var-res-sed.fits'
+    proxy_path = '/media/david/2tb_ext_hd/hddata/mega_muscles/muscles_hlsp/gj832/hlsp_muscles_multi_multi_gj832_broadband_v22_{}-res-sed.fits'.format(sed_type)
 
     d_prox = 1000/201.3252
     d_star = 38.025
     scale = (d_prox/d_star)**2
-    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1, 1214, 1217, 1699], remove_negs=remove_negs,to_1A=to_1A)
+    sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [1, 100, 1170,  1214, 1217, 1699], remove_negs=False,to_1A=False)
+
+
+    #adding the gj832 DEM separately 
+    proxy_path2 = '/home/david/work/meats/SEDs/draft_hlsp/gj_832/'#hlsp_muscles_model_dem_gj832_na_v1_component-spec.fits'
+    
+    # sed_table, instrument_list = sed.add_proxy(sed_table, proxy_path2, instrument_list, scale, ranges = [101, 1169], remove_negs=remove_negs,to_1A=to_1A)
+    
+    sed_table, instrument_list = sed.add_euv(sed_table, proxy_path2, instrument_list, [101, 1170], 'dem',to_1A=to_1A, norm=scale)
     
     
     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A)
@@ -84,7 +92,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table.meta['WAVEMIN'] = min(sed_table['WAVELENGTH'])
     sed_table.meta['WAVEMAX'] = max(sed_table['WAVELENGTH'])
-    sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])
+    sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])hlsp_muscles_model_dem_gj832_na_v1_component-spec.fits
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
 
