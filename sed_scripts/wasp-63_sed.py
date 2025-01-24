@@ -78,5 +78,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, sed_type='var')
 make_sed(path, star, version, norm=False, remove_negs=False, to_1A=True, sed_type='const')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=False, sed_type='adapt-var')
+make_sed(path, star, version, norm=False, remove_negs=True, to_1A=True, sed_type='adapt-const')
 
 plt.show()

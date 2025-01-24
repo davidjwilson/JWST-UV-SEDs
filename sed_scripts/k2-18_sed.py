@@ -69,22 +69,14 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table, instrument_list = sed.add_phoenix(sed_table, path, instrument_list, to_1A=to_1A)
     
-    # sed_table, instrument_list, gap = sed.add_xray_spectrum(sed_table, path, instrument_list, 'xmm', add_apec = True, find_gap=True, to_1A=to_1A)
-    
-    #cutting the apec model down, fix later (fixed, wrong dem)
-#     apec_mask = (sed_table['WAVELENGTH'] < 50) | (sed_table['WAVELENGTH'] > 200)
-#     gap[0] = 40
-#     sed_table = sed_table[apec_mask]
-    
-    
-    
-    # sed_table, instrument_list = sed.add_euv(sed_table, path, instrument_list, gap, 'dem',to_1A=to_1A)
     
     
     
     sed_table.sort(['WAVELENGTH'])
     
-    
+    for i in range(len(sed_table['ERROR'])): #adding a 10% error for now
+        if sed_table['ERROR'][i] <=0.0:
+            sed_table['ERROR'][i] = abs(sed_table['FLUX'][i]) * 0.1
     
     sed_table = sed.add_bolometric_flux(sed_table, path)
 
@@ -92,7 +84,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table.meta['WAVEMIN'] = min(sed_table['WAVELENGTH'])
     sed_table.meta['WAVEMAX'] = max(sed_table['WAVELENGTH'])
-    sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])hlsp_muscles_model_dem_gj832_na_v1_component-spec.fits
+    sed_table.meta['FLUXMIN'] = min(sed_table['FLUX'])
     sed_table.meta['FLUXMAX'] = max(sed_table['FLUX'])
 
 

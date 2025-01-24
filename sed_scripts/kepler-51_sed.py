@@ -75,7 +75,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     
     sed_table.sort(['WAVELENGTH'])
-    
+
+
     
     
     sed_table = sed.add_bolometric_flux(sed_table, path)
