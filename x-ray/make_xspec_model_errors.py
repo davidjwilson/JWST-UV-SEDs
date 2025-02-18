@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'TOI-402':
+    if x['Star'] == 'TOI-260':
         n = 0
         fluxes = []
         while n < ntries:
@@ -160,7 +160,7 @@ for x in xtab:
             # plt.plot(data['WAVELENGTH'], data['FLUX'], c='C1', ls='--')
         else:
             starx = glob.glob('../models/{}*apec*.txt'.format(x['Star']))
-            if len(starx) > 0:
+            if len(starx) > 0 and x['Star'] != 'TOI-260': #TOI-260 has a much longer model for some reason, cutting it to the same as the others for consistencey
                 print('found the txt')
                 hlsp= True
                 data = Table.read(starx[0], format='ascii.basic')
@@ -186,5 +186,5 @@ for x in xtab:
         ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
         
 
-    print('DONE')
+print('DONE')
 # plt.show()
