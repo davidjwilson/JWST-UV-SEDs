@@ -5,7 +5,7 @@
 
 @date 20250220
 
-Makes the TOI-402.
+Makes the TOI-402 sed.
 """
 
 import instruments
@@ -36,7 +36,7 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
     
     sed_table = []
     instrument_list = []
-    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, lya_max = True, optical=True, Ebv=0.02)
+    sed_table, instrument_list = sed.add_stis_and_lya(sed_table, path, airglow[0:2], instrument_list, airglow[2:], norm=False, remove_negs=remove_negs,to_1A=to_1A, trims=trims, lya_max = True, optical=True, Ebv=0.007)
     
     
     
@@ -79,6 +79,8 @@ def make_sed(path, star, version, norm=False, remove_negs=False, to_1A=False, se
 #     print(sed_table.meta)
     
     make_fits.make_mm_fits(path, sed_table, instrument_list, version,sed_type=sed_type)
+
+    sed.update_meta(star.lower(), version, newpath='../fixed_hlsp/', oldpath = '../draft_hlsp/')
     
     
     # plt.show()

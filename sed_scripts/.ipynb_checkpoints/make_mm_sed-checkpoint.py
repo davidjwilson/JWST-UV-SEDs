@@ -38,9 +38,122 @@ from astropy.nddata import StdDevUncertainty
 import remove_negatives as negs
 import bin_to_const as bin1A
 from dust_extinction.parameter_averages import F99
+from astroquery.simbad import Simbad
+from astropy.coordinates import SkyCoord
+
 
 cds.enable()
 
+
+def update_meta(star, version, new_version=25, newpath='../fixed_hlsp/', oldpath = '../draft_hlsp/'):
+    """
+    Updates the meta to current HLSP standards and moves the files to fixed_hlsp.
+    """
+
+    newdir = '{}{}/'.format(newpath, star)
+    if not os.path.exists(newdir):
+       os.makedirs(newdir)
+    
+    oldv = version
+    version = new_version
+    starpath = '{}{}/'.format(oldpath, star)
+    print(starpath)
+    specs = np.hstack((glob.glob('{}*stis*.fits'.format(starpath)),glob.glob('{}*cos*.fits'.format(starpath))))
+    mods = glob.glob('{}*mod*.fits'.format(starpath))
+    seds = glob.glob('{}*multi*.fits'.format(starpath))
+    xrays = np.hstack((glob.glob('{}*cxo*.fits'.format(starpath)),glob.glob('{}*xmm*.fits'.format(starpath))))
+
+    # print(specs)
+    # print(mods)
+    # print(seds)
+    # print(xrays)
+    
+    
+    starts = []
+    ends = []
+
+    for spec in specs:
+        hdul = fits.open(spec)
+        hdr = hdul[0].header
+        ra, dec = hdr['RA_TARG'], hdr['DEC_TARG']
+        starts.append(hdr['EXPSTART'])
+        ends.append(hdr['EXPEND'])
+        hdr.append(('DOI', '10.17909/T9DG6F'))
+        hdr.append(('RADESYS' , 'ICRS'))
+        hdr.append(('TIMESYS', 'UTC'))
+        hdr.append(('HLSPVER', 'V{}'.format(version)))
+        hdr.append(('HSLPID', 'MUSCLES'))
+        hdr.append(('LICENSE','CC BY 4.0'))
+        hdr.append(('LICENURL', 'https://creativecommons.org/licenses/by/4.0/'))
+        new_name = (os.path.split(spec)[1]).replace('v{}'.format(oldv), 'v{}'.format(version))
+        savepath = '{}{}/{}'.format(newpath, star, new_name)
+        hdul.writeto(savepath, overwrite=True)
+    
+    for spec in mods:
+        hdul = fits.open(spec)
+        hdr = hdul[0].header
+        hdr.append(('DOI', '10.17909/T9DG6F'))
+        hdr.append(('HLSPVER', 'V{}'.format(version)))
+        hdr.append(('HSLPID', 'MUSCLES'))
+        hdr.append(('LICENSE','CC BY 4.0'))
+        hdr.append(('LICENURL', 'https://creativecommons.org/licenses/by/4.0/'))
+        new_name = (os.path.split(spec)[1]).replace('v{}'.format(oldv), 'v{}'.format(version))
+        savepath = '{}{}/{}'.format(newpath, star, new_name)
+        hdul.writeto(savepath, overwrite=True)
+    
+    for spec in xrays:
+        hdul = fits.open(spec)
+        hdr = hdul[0].header
+        starts.append(hdr['EXPSTART'])
+        ends.append(hdr['EXPEND'])
+        hdr.append(('RA_TARG', ra))
+        hdr.append(('DEC_TARG', dec))
+        hdr.append(('DOI', '10.17909/T9DG6F'))
+        hdr.append(('RADESYS' , 'ICRS'))
+        hdr.append(('TIMESYS', 'UTC'))
+        hdr.append(('HLSPVER', 'V{}'.format(version)))
+        hdr.append(('HSLPID', 'MUSCLES'))
+        hdr.append(('LICENSE','CC BY 4.0'))
+        hdr.append(('LICENURL', 'https://creativecommons.org/licenses/by/4.0/'))
+        new_name = (os.path.split(spec)[1]).replace('v{}'.format(oldv), 'v{}'.format(version))
+        savepath = '{}{}/{}'.format(newpath, star, new_name)
+        hdul.writeto(savepath, overwrite=True)
+    
+    start = np.min(starts)
+    end = np.max(ends)
+    
+    for spec in seds:
+        hdul = fits.open(spec)
+        hdr = hdul[0].header
+        hdr.append(('MJD-BEG', start))
+        hdr.append(('MJD-END', end))
+        hdr.append(('DOI', '10.17909/T9DG6F'))
+        hdr.append(('RADESYS' , 'ICRS'))
+        hdr.append(('TIMESYS', 'UTC'))
+        hdr.append(('HLSPVER', 'V{}'.format(version)))
+        hdr.append(('HSLPID', 'MUSCLES'))
+        hdr.append(('LICENSE','CC BY 4.0'))
+        hdr.append(('LICENURL', 'https://creativecommons.org/licenses/by/4.0/'))
+        new_name = (os.path.split(spec)[1]).replace('v{}'.format(oldv), 'v{}'.format(version))
+        for i in hdr:
+            if hdr[i] in ['mod', 'Mod', 'MOD']:
+                hdr[i] = 'MODEL'
+        starname = hdr['TARGNAME']
+        if starname[0:2].upper() == 'HD':
+            starname = starname.replace('-', ' ')
+        elif starname == 'kap1Cet':
+            starname = '*kap01 Cet'
+        simtab = Simbad.query_object(starname)
+        coords = SkyCoord(simtab['RA'][0], simtab['DEC'][0], unit=(u.hourangle, u.deg))
+
+        hdr['RA_TARG'] = coords.ra.deg
+        hdr['DEC_TARG'] = coords.dec.deg
+        
+      
+        savepath = '{}{}/{}'.format(newpath, star, new_name)
+        hdul.writeto(savepath, overwrite=True)
+
+    
 
 def wavelength_edges(w):
     """
