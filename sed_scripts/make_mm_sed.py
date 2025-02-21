@@ -367,8 +367,9 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
         if lya_max and (sed_table['WAVELENGTH'][0] < lya['WAVELENGTH'][0]) and (sed_table['WAVELENGTH'][-1] > lya['WAVELENGTH'][-1]): #remove edges of the lya model that may be < data
             lflux = interpolate.interp1d(data['WAVELENGTH'], data['FLUX'], fill_value='extrapolate')(lya['WAVELENGTH'])
             lmask = (lflux < lya['FLUX'])
-            lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
-            lya = lya[lyamask] 
+            if len(lya['WAVELENGTH'][lmask]) > 0: 
+                lyamask = (lya['WAVELENGTH'] >= min(lya['WAVELENGTH'][lmask])) & (lya['WAVELENGTH'] <= max(lya['WAVELENGTH'][lmask]))
+                lya = lya[lyamask] 
         mask = (sed_table['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (sed_table['WAVELENGTH'] > lya['WAVELENGTH'][-1])
         sed_table = sed_table[mask] #clear the gap for lya
         sed_table = vstack([sed_table, lya], metadata_conflicts = 'silent')
@@ -479,7 +480,7 @@ def add_phoenix(sed_table, component_repo, instrument_list, to_1A=False, ranges 
     return sed_table, instrument_list
     
     
-def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False):
+def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False, trims={}):
     """
     Adds either a Chandra or and XMM spectrum and an APEC model. Can also return the gap that the EUV/DEM will fit into.
     """
@@ -520,6 +521,9 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
         if len(apec_path) > 0:
 #             print(apec_path)
             apec = Table(fits.getdata(apec_path[0], 1))
+            if 'apec' in trims:
+                    mask = (apec['WAVELENGTH'] > trims['apec'][0]) &  (apec['WAVELENGTH'] < trims['apec'][1])
+                    apec = apec[mask]
             hdr = fits.getheader(apec_path[0], 0)
             if to_1A:
                 print('binning {}'.format(apec_path[0]))
