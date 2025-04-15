@@ -9,7 +9,6 @@ import astropy.units as u
 
 from scipy.interpolate import interpolate
 from astropy.units import cds
-import astropy.stats as stats
 from scipy import stats
 from specutils import Spectrum1D
 from specutils.manipulation import FluxConservingResampler
@@ -49,10 +48,10 @@ def coadd_iue(spectra, dq_cut=0, rebin=2):
     """
     Coadds IUE spectra using throughput weighting and dq masking. Bins by factor two by default. Makes the other arrays for a MUSCLES HLSP
     """
-    if len(spectra) > 0:
+    if len(spectra) == 0:
         print('there are no spectra here')
 
-            
+    else:     
 
         fluxes = []
         dqs = []
@@ -76,9 +75,9 @@ def coadd_iue(spectra, dq_cut=0, rebin=2):
             expstart = hdr['LJD-OBS']- 2400000.5 #convert JD to MJD
             exptime = hdr['LEXPTIME']
             expend = expstart + ((exptime*u.s).to(u.d)).value
-            expstarts.append(np.full(len(w)), expstart)
-            exptimes.append(np.full(len(w)), exptime)
-            exends.append(np.full(len(w)), expend)
+            expstarts.append(np.full(len(w), expstart))
+            exptimes.append(np.full(len(w), exptime))
+            expends.append(np.full(len(w), expend))
 
             
     
@@ -114,14 +113,14 @@ def coadd_iue(spectra, dq_cut=0, rebin=2):
         
             wavelength = stats.mode(waves).mode # wavelength arrays are near identical so just use the mode in each case. Experiment with uniform grid?
             exptime = np.ma.sum(np.ma.array(exptimes, mask = mask), axis=0)
-            start = np.ma.min(np.ma.arrya(exptstarts, mask = mask), axis=0)
-            end = np.ma.max(np.ma.arrya(exptends, mask = mask), axis=0)
+            start = np.ma.min(np.ma.array(expstarts, mask = mask), axis=0)
+            end = np.ma.max(np.ma.array(expends, mask = mask), axis=0)
         
         
             # rebinning 
         if rebin >0:
             w0, w1 = wavelength[0], wavelength[-1]
-            dw = np.median(np.diff(wavelength)) *rebin_pix
+            dw = np.median(np.diff(wavelength)) *rebin
             new_wavelength = np.arange(w0, w1, dw)
             fluxcon = FluxConservingResampler(extrapolation_treatment='zero_fill')
             input_spec = Spectrum1D(spectral_axis=wavelength*u.AA, 
@@ -132,9 +131,9 @@ def coadd_iue(spectra, dq_cut=0, rebin=2):
             coadd_flux = (new_spec_fluxcon.flux.value)
             coadd_error = (1/(new_spec_fluxcon.uncertainty.array**0.5))
 
-            start = interpolate.interpld(wavelength, start, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
-            end = interpolate.interpld(wavelength, end, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
-            exptime = interpolate.interpld(wavelength, exptime, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
+            start = interpolate.interp1d(wavelength, start, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
+            end = interpolate.interp1d(wavelength, end, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
+            exptime = interpolate.interp1d(wavelength, exptime, kind='nearest',bounds_error=False, fill_value=0.)(new_wavelength)
 
             wavelength = new_wavelength
         
@@ -145,7 +144,25 @@ def coadd_iue(spectra, dq_cut=0, rebin=2):
                 'ERROR':coadd_error*u.erg/u.s/u.cm**2/u.AA,'EXPTIME':exptime*u.s,'DQ':dq_new,'EXPSTART':start*cds.MJD,'EXPEND':end*cds.MJD}
         return new_data
 
-
+def make_dataset_extension(mxlos):
+    """
+    Makes a fits extension containg a list of rootnames and dataset IDs used in the spectrum.
+    """
+    description_text = 'This extension contains a list of IUE dataset ID (CAMERA+IMAGE keywords in the fileheaders). The dataset IDs can be used to directly locate the observations through the MAST data archive search interface. Multiple identifiers indicate the spectra were coadded.' 
+    
+    
+    datasets = []
+    for x in mxlos:
+        hdr = fits.getheader(x)
+        dataset_id = hdr['CAMERA'] + str(hdr['IMAGE'])
+        datasets.append(dataset_id)
+    dataset_table = Table([np.full(len(datasets), ''),datasets], names=[('ROOTNAME'),('DATASET_ID')])
+    hdu = fits.table_to_hdu(dataset_table)
+    hdu.header.insert(8, ('EXTNAME','SRCSPECS'))
+    hdu.header.insert(9, ('EXTNO',3))
+    hdu.header['COMMENT'] = description_text
+    
+    return hdu
 
 def sort_mxlos(mxlos):
     """
@@ -154,10 +171,10 @@ def sort_mxlos(mxlos):
     swls = []
     lwls = []
     for spec in mxlos:
-        camera = fits.getheader(mxlo, 0)['CAMERA']
+        camera = fits.getheader(spec, 0)['CAMERA']
         if camera == 'SWP':
             swls.append(spec)
-        elif camera in ['LWP', 'LWR]':
+        elif camera in ['LWP', 'LWR']:
             lwls.append(spec)
     return dict(SWLO=swls, LWLO=lwls)
 
@@ -181,9 +198,9 @@ def make_metadata(mxlos, new_data, hlsp, normfac, star):
     meta_names =  ['TELESCOP', 'INSTRUME','GRATING','APERTURE','TARGNAME','RA_TARG','DEC_TARG','PROPOSID','HLSPNAME','HLSPACRN','HLSPLEAD','PR_INV_L',
                    'PR_INV_F','DATE-OBS','EXPSTART','EXPEND','EXPTIME','EXPDEFN','EXPMIN','EXPMAX','EXPMED','NORMFAC','WAVEMIN','WAVEMAX','WAVEUNIT','AIRORVAC','SPECRES','WAVERES','FLUXMIN',
                   'FLUXMAX','FLUXUNIT']
-    meta_fill = ['',hdr['CAMERA'],hdr['DISPERSN'],'',starname,hdr['LTARGRA'],hdr['LTARGRDEC'],hdr['PGM-ID'],hlsp['PROGRAM'],hlsp['PROGRAMSHORT'],hlsp['HLSPLEAD'],
+    meta_fill = ['',hdr['CAMERA'],hdr['DISPERSN'],'',starname,hdr['LTARGRA'],hdr['LTARGDEC'],hdr['PGM-ID'],hlsp['PROGRAM'],hlsp['PROGRAMSHORT'],hlsp['HLSPLEAD'],
                  'n/a','n/a',min(dates),min(new_data['EXPSTART'].value),max(new_data['EXPEND'].value),max(new_data['EXPTIME'].value),'SUM', 
-                min(exptimes), max(exptimes), np.median(exptimes),normfac,wavelength[0], wavelength[-1],'ang','vac',specres,waveres,np.min(flux[np.isnan(flux)==False]), np.max(flux[np.isnan(flux)==False]),'erg/s/cm2/ang']
+                min(new_data['EXPTIME'].value), max(new_data['EXPTIME'].value), np.median(new_data['EXPTIME'].value),normfac,wavelength[0], wavelength[-1],'ang','vac',specres,waveres,np.min(flux[np.isnan(flux)==False]), np.max(flux[np.isnan(flux)==False]),'erg/s/cm2/ang']
     metadata = {}
     for name, filler in zip(meta_names, meta_fill):
         if filler == '':
@@ -231,14 +248,20 @@ def plot_spectrum(data, metadata):
     ax.step(data['WAVELENGTH'], data['ERROR'], where='mid', alpha=0.5, label='ERROR')
     ax.set_xlabel('Wavelength (\AA)', size=20)
     ax.set_ylabel('Flux (erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$)', size=20)
-    ax.set_title('{}_{}'.format(metadata['TARGNAME'],metadata['GRATING']))
+    ax.set_title('{}_{}'.format(metadata['TARGNAME'],metadata['INSTRUME']))
     ax.legend()
     fig.tight_layout()
     plt.show()
 
+def make_component_filename(metadata, version, hlsp):
+    """
+    Construct the filename for a component spectrum ,eg "hlsp_muscles_hst_stis_gj176_g230l_v22_component-spec.fits"hlsp_muscles_hst_stis_gj176_g230l_v22_component-spec.fits
+    """
+    filename = 'hlsp_{}_{}_{}_{}_{}_v{}_component-spec'.format(hlsp['HLSPNAME'].lower(),metadata['TELESCOP'].lower(), metadata['INSTRUME'].lower(), metadata['TARGNAME'].lower(), metadata['GRATING'].lower(), version) 
+    return filename
 
     
-def make_iue_spectrum(mxlopath, version, hlsp, savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, return_gratings = False, normfac=1.0, star = '', nclip=5):
+def make_iue_spectrum(mxlopath, version, hlsp, savepath = '', plot=False, save_ecsv=False, save_fits=False, return_data=False, normfac=1.0, star = '', nclip=5):
     """
     main function
     """
@@ -246,22 +269,20 @@ def make_iue_spectrum(mxlopath, version, hlsp, savepath = '', plot=False, save_e
     hlsp = Table.read(hlsp)[0]
     if len(mxlos) > 0:
         grouped_mxlos = sort_mxlos(mxlos)
-        for band in grouped_mixlos.keys():
+        for band in grouped_mxlos.keys():
             if len(grouped_mxlos[band]) > 0:
                 print('Working with {} spectra'.format(band))
-                data = coadd_iue(grouped_mixlos[band])
-                metadata = make_metadata(grouped_mixlos[band], data, hlsp, normfac, star)
+                data = coadd_iue(grouped_mxlos[band])
+                metadata = make_metadata(grouped_mxlos[band], data, hlsp, normfac, star)
             if plot:
                 plot_spectrum(data, metadata)
             if save_ecsv:
                 save_to_ecsv(data, metadata, savepath, version)
             if save_fits:
-                data_set_hdu = make_dataset_extension(x1ds)
+                data_set_hdu = make_dataset_extension(mxlos)
                 save_to_fits(data, metadata, hlsp, data_set_hdu, savepath, version)
     if return_data:
-        return data
-    if return_gratings:
-        return grouped_mixlos.keys()    
+        return data  
                 
         
         
