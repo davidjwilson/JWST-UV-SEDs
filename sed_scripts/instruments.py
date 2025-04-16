@@ -52,7 +52,9 @@ def getinsti(instrument):
     try:
         return instvals[instruments.index(instrument)]
     except ValueError:
-        return -99
+        return instvals[instruments.index('oth_---_other')]
+        
+        # return -99
 
 def gethlspname(inst_string):
     """

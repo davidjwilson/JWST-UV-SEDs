@@ -1,14 +1,16 @@
 """
-@verison: 7
+@verison: 8
 
 @author: David Wilson
 
-@date 20231016
+@date 20250416
 
 The big one. Draft here, will spin off to modules as required. 
 v6 updating to use fits files, not ecsv. MEATS version.
 
 v7 added functions to add reddening, starcat files
+
+v8 added ability to add IUE, GHRS and eROSITA spectra.
 
 """
 
@@ -58,10 +60,16 @@ def update_meta(star, version, new_version=25, newpath='../fixed_hlsp/', oldpath
     version = new_version
     starpath = '{}{}/'.format(oldpath, star)
     print(starpath)
-    specs = np.hstack((glob.glob('{}*stis*.fits'.format(starpath)),glob.glob('{}*cos*.fits'.format(starpath))))
+    specs = np.hstack((glob.glob('{}*stis*.fits'.format(starpath)),
+                       glob.glob('{}*cos*.fits'.format(starpath)),
+                       glob.glob('{}*iue*.fits'.format(starpath)),
+                       glob.glob('{}*hrs*.fits'.format(starpath)),
+                      ))
     mods = glob.glob('{}*mod*.fits'.format(starpath))
     seds = glob.glob('{}*multi*.fits'.format(starpath))
-    xrays = np.hstack((glob.glob('{}*cxo*.fits'.format(starpath)),glob.glob('{}*xmm*.fits'.format(starpath))))
+    xrays = np.hstack((glob.glob('{}*cxo*.fits'.format(starpath)),
+                       glob.glob('{}*xmm*.fits'.format(starpath)), 
+                                 glob.glob('{}*ero*.fits'.format(starpath))))
 
     # print(specs)
     # print(mods)
@@ -118,7 +126,7 @@ def update_meta(star, version, new_version=25, newpath='../fixed_hlsp/', oldpath
         new_name = (os.path.split(spec)[1]).replace('v{}'.format(oldv), 'v{}'.format(version))
         savepath = '{}{}/{}'.format(newpath, star, new_name)
         hdul.writeto(savepath, overwrite=True)
-    
+    # print(starts)
     start = np.min(starts)
     end = np.max(ends)
     
@@ -190,6 +198,7 @@ def hst_instrument_column(table, hdr):
     inst_string = '%s_%s_%s' % (telescope.lower(), instrument.lower(), grating.lower())
     inst_code = instruments.getinsti(inst_string)
     inst_array = np.full(len(table['WAVELENGTH']), inst_code, dtype=int)
+    # print(inst_array)
     table['INSTRUMENT'] = inst_array
     return inst_code, table
 
@@ -372,15 +381,56 @@ def add_lya(sed_table, component_repo, instrument_list, lya_range=[], to_1A=Fals
             sed_table.sort(['WAVELENGTH'])
         return sed_table, instrument_list
 
-    
-def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}, lya_max = False, Ebv=0.0):
+def add_iue(sed_table, component_repo, instrument_list, norm=False, remove_negs=False, to_1A=False, trims = {}, Ebv=0.0):
     """
-    Add the stis fuv spectra and lya model to the sed
+    Adds iue low-resolution spectra.
+    """
+    iue_specs = glob.glob('{}*iue*'.format(component_repo))
+    for specpath in iue_specs:
+        data = Table(fits.getdata(specpath, 1))
+        hdr = fits.getheader(specpath, 0)
+        inst = hdr['INSTRUME']
+        print('adding {} spectrum'.format(inst))
+        if inst in trims: 
+            mask = (data['WAVELENGTH'] > trims[inst][0]) &  (data['WAVELENGTH'] < trims[inst][1])
+            data = data[mask]
+        if remove_negs:
+            print('removing negatives from {}'.format(specpath))
+            data = negs.make_clean_spectrum(data)
+        if to_1A:
+            print('binning {}'.format(specpath))
+            data = bin1A.spectrum_to_const_res(data)
+        instrument_code, data = hst_instrument_column(data,  hdr)
+        instrument_list.append(instrument_code)               
+        if norm:
+            data['FLUX'] = data['FLUX'] * normfac
+            data['ERROR'] = data['ERROR'] * normfac
+        data = normfac_column(data, hdr)
+        if Ebv != 0.0:
+            data = deredden(data, Ebv)
+          
+
+        sed_table = vstack([sed_table, data], metadata_conflicts = 'silent')
+  
+                
+    return sed_table, instrument_list
+
+
+
+        
+        
+
+    
+def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, other_airglow, norm=False, error_cut=True, optical = False, remove_negs=False, to_1A=False, trims = {}, lya_max = False, Ebv=0.0, ghrs=False):
+    """
+    Add the stis fuv spectra and lya model to the sed. Also should work for GHRS
     """
     stis_gratings = ['E140M', 'G140L','G140M', 'G230L', 'G230LB', 'E230M', 'E230H']
     if optical:
         stis_gratings.append('G430L') #usually want to add the optical spectrum with the phoenix model, but retaining the option here
-        stis_gratings.append('G750L') 
+        stis_gratings.append('G750L')
+    if ghrs:
+        stis_gratings.append('ECH-A') #do this better if we need more GHRS
     lya_path = glob.glob(component_repo+'*lya*.fits')
         
     if len(lya_path) == 1:
@@ -403,7 +453,7 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
             print('adding {} spectrum'.format(grating))
             data= Table(fits.getdata(specpath[0], 1))
             hdr = fits.getheader(specpath[0], 0)
-            if hdr['INSTRUME'] =='STIS':
+            if hdr['INSTRUME'] in ['STIS', 'HRS']:
                 if grating in trims: 
                     mask = (data['WAVELENGTH'] > trims[grating][0]) &  (data['WAVELENGTH'] < trims[grating][1])
                     data = data[mask]
@@ -446,6 +496,8 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                         mask = (w > start) & (f > 0)
                         data = data[mask]
                     mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
+                elif grating == 'ECH-A':
+                     mask = (data['WAVELENGTH'] < lya['WAVELENGTH'][0]) | (data['WAVELENGTH'] > lya['WAVELENGTH'][-1])         
                 else:
                     # mask = (data['WAVELENGTH'] > max(sed_table['WAVELENGTH']))
                     mask = (data['WAVELENGTH'] > 0)
@@ -595,7 +647,7 @@ def add_phoenix(sed_table, component_repo, instrument_list, to_1A=False, ranges 
     
 def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False, trims={}):
     """
-    Adds either a Chandra or and XMM spectrum and an APEC model. Can also return the gap that the EUV/DEM will fit into.
+    Adds either a Chandra or and XMM spectrum and an APEC model. Can also return the gap that the EUV/DEM will fit into. Now does eROSITA
     """
     if scope == 'xmm':
         instrument_name = 'xmm_epc_multi'
@@ -603,6 +655,8 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
         instrument_name = 'xmm_rgs_-----'
     if scope == 'cxo':
         instrument_name = 'cxo_acs_-----'
+    if scope == 'ero':
+        instrument_name = 'oth_---_other'
     cos_start = min(sed_table['WAVELENGTH']) #save the lowest wavelength on the table before we add anything to it
     xray_path = glob.glob(component_repo+'*'+scope+'*.fits')
     xray_end = 0

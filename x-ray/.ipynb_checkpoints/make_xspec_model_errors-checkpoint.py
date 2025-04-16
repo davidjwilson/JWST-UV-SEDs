@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'TOI-260':
+    if x['Star'] == 'eps_Indi':
         n = 0
         fluxes = []
         while n < ntries:
@@ -135,6 +135,8 @@ for x in xtab:
 
             if x['tel'] == 'xmm':
                 AllModels.setEnergies("0.102 2.5 2401")
+            elif x['tel'] == 'ero':
+                AllModels.setEnergies("0.1033475 2.479134 6901")
             else:
                 AllModels.setEnergies("0.1 2.5 2400")
             # AllModels.setEnergies("0.1 2.5 2400")
@@ -186,5 +188,5 @@ for x in xtab:
         ascii.write(savdat, '../models/{}_apec_errs.ecsv'.format(x['Star']), format='ecsv', overwrite=True)
         
 
-    print('DONE')
+print('DONE')
 # plt.show()
