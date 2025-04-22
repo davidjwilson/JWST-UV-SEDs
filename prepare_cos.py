@@ -13,9 +13,11 @@ cds.enable()
 """
 @author: David Wilson
 
-version 2 20230821
+version 3 20250421
 
 Turns KF's COS files into Muscles Standard fits files. Modified for Meats and Kevin now makes txt files. 
+
+v3 hacking ability to not use Kevin's files. Nope, too complicated
 
 """
 def no_zero_errors(flux, error):
@@ -148,8 +150,17 @@ def make_cos_data(savtxt, x1dpath, correct_error=True):
     """
     Turns a KF txt file into the data array. Needs the file and path to the x1d files making that file
     """
-    data = Table.read(savtxt, format='ascii.basic')
-    w_new, f_new, e_new = data['WAVELENGTH'], data['FLUX'], data['ERROR']
+    if  savtxt != 'None':
+        data = Table.read(savtxt, format='ascii.basic')
+        # print(data)
+        w_new, f_new, e_new = data['WAVELENGTH'], data['FLUX'], data['ERROR']
+    # else:
+    #     data = fits.getdata(x1dpath, 1)[::-1]
+    #     w_new, f_new, e_new = np.hstack(data['WAVELENGTH']), np.hstack(data['FLUX']), np.hstack(data['ERROR'])
+
+        
+        
+    
     
     dq_new, exptime, start, end = make_cos_arrays(w_new, x1dpath)
     
