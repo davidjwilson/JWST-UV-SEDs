@@ -13,15 +13,28 @@ cds.enable()
 
 """
 
-@verison: 3
+@verison: 4
 
 @author: David Wilson
 
-@date 20231002
+@date 20250422
 
 Turns AB's Chandra files into HSLP escv and fits files. MEATS version
+
+V4 added bit to take a grating spectrum in a text file.
 """
 
+def wavelength_edges(w):
+    """
+    Calulates w0 and w1
+    """
+    diff = np.diff(w)
+    diff0 = np.concatenate((np.array([diff[0]]), diff)) #adds an extravalue to make len(diff) = len(w)
+    diff1 = np.concatenate((diff, np.array([diff[-1]]))) #adds an extravalue to make len(diff) = len(w)
+    w0 = w - diff0/2.
+    w1 = w + diff1/2.
+    return w0, w1
+    
 def nan_clean(array):
     """
     replace nans in arrays with zeros
@@ -61,8 +74,31 @@ def build_chandra_data(spectrum_path, hdr0):
     new_data = {'WAVELENGTH':w*u.AA,'WAVELENGTH0':w0*u.AA,'WAVELENGTH1':w1*u.AA,'FLUX':f*u.erg/u.s/u.cm**2/u.AA,
                 'ERROR':e*u.erg/u.s/u.cm**2/u.AA,'EXPTIME':exptime*u.s,'DQ':dq,'EXPSTART':start*cds.MJD,'EXPEND':end*cds.MJD}
     return new_data
+
+def build_from_txt(spectrum_path, hdr0):
+    """
+    Taking a spectrum from an ecsv that has w, f, e in it, this is for the 70 Oph B grating spectrum at first.
+    """
+    data = Table.read(spectrum_path, format='ascii.basic')
+    w, f, e = data['WAVELENGTH'], data['FLUX'], data['ERROR']
+    # w, bins, counts, counts_err, model  = np.loadtxt(spectrum_path, unpack=True, skiprows=4)
+    # f = [fi*1.99e-8/wi for fi, wi in zip(counts,w)]
+    # e = (counts_err/counts)*f
+    # args = np.argsort(w)
+    # w, e, bins = w[args], e[args], bins[args] #files are often backwards
+    # f = np.array(f)[args]
+    # w0, w1 = w - bins, w+bins
+    w0, w1 = wavelength_edges(w)
+    start = np.full(len(w), (Time(hdr0['DATE-OBS']).mjd))
+    end = np.full(len(w), (Time(hdr0['DATE-END']).mjd))
+    exptime = np.full(len(w), ((Time(hdr0['DATE-END']).mjd - (Time(hdr0['DATE-OBS']).mjd))*u.d.to(u.s)))
+    dq = np.zeros(len(w), dtype=int)
+    f, e = nan_clean(f), nan_clean(e)
+    new_data = {'WAVELENGTH':w*u.AA,'WAVELENGTH0':w0*u.AA,'WAVELENGTH1':w1*u.AA,'FLUX':f*u.erg/u.s/u.cm**2/u.AA,
+                'ERROR':e*u.erg/u.s/u.cm**2/u.AA,'EXPTIME':exptime*u.s,'DQ':dq,'EXPSTART':start*cds.MJD,'EXPEND':end*cds.MJD}
+    return new_data
                   
-def build_chandra_metadata(hdr1, new_data, hlsp):
+def build_chandra_metadata(hdr1, new_data, hlsp, star):
     """
     Makes the metadata for the chandra data table. Version 2 rewriting to not requre the SED metadata so can make x-ray files separately 
     """
@@ -71,7 +107,8 @@ def build_chandra_metadata(hdr1, new_data, hlsp):
     specres = wavelength[mid]
     waveres = wavelength[mid+1] - wavelength[mid]
     start, end, exptime = np.min(new_data['EXPSTART'][new_data['EXPSTART']>0].value), np.max(new_data['EXPEND'].value), np.max(new_data['EXPTIME'].value)
-    star = hdr1['OBJECT']
+    if star == '':
+        star = hdr1['OBJECT']
     meta_names =['TELESCOP','INSTRUME','GRATING','DETECTOR','FILTER',
                  'TARGNAME','RA_TARG','DEC_TARG','PROPOSID',
                  'HLSPNAME','HLSPACRN','HLSPLEAD',
@@ -152,13 +189,16 @@ def make_dataset_extension(hdr):
     return hdu
     
     
-def make_chandra_spectra(chandra_path, evt_path, savepath, version, hlsp, apec_repo='', make_apec=True, save_ecsv=False, save_fits=False):
+def make_chandra_spectra(chandra_path, evt_path, savepath, version, hlsp, apec_repo='', make_apec=True, save_ecsv=False, save_fits=False, grating =False, star=''):
     hdr = fits.getheader(evt_path, 1)
-    data_file = glob.glob(chandra_path+'*spectrum*')[0]
-    model_file = glob.glob(chandra_path+'*model*')[0]                 
-    data = build_chandra_data(data_file, hdr)
-    metadata = build_chandra_metadata(hdr, data, hlsp)
+    if not grating:
+        data_file = glob.glob(chandra_path+'*spectrum*')[0]
+        data = build_chandra_data(data_file, hdr)
+    else:
+        data = build_from_txt(chandra_path, hdr)
+    metadata = build_chandra_metadata(hdr, data, hlsp, star)
     if make_apec:
+        model_file = glob.glob(chandra_path+'*model*')[0]                     
         apec_to_ecsv(model_file, metadata, apec_repo)
     if save_ecsv:
         save_to_ecsv(data, metadata, savepath, version)

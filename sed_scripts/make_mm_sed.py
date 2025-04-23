@@ -887,20 +887,27 @@ def add_proxy(sed_table, proxy_path, instrument_list, scale, ranges = [0], remov
     data['ERROR'] = proxdata['ERROR'] * scale
     if 'EXPTIME' in names:
         data['EXPTIME'] = proxdata['EXPTIME']
-    else:
+    elif 'EXPTIME' in list(hdr.keys()):
         data['EXPTIME'] = np.full(len(data['WAVELENGTH']), hdr['EXPTIME'])
+    else:
+        data['EXPTIME'] = np.full(len(data['WAVELENGTH']), 0)   
     if 'DQ' in names:
         data['DQ'] = proxdata['DQ']
     else:
         data['DQ'] = np.full(len(data['WAVELENGTH']), 0)
     if 'EXPSTART' in names:
         data['EXPSTART'] = proxdata['EXPSTART']
-    else:
+    elif 'EXPSTART' in list(hdr.keys()):
         data['EXPSTART'] = np.full(len(data['WAVELENGTH']), hdr['EXPSTART'])
+    else:
+        data['EXPSTART'] = np.full(len(data['WAVELENGTH']), 0)
+        
     if 'EXPEND' in names:
         data['EXPEND'] = proxdata['EXPEND']
-    else:
+    elif 'EXPEND' in list(hdr.keys()):
         data['EXPEND'] = np.full(len(data['WAVELENGTH']), hdr['EXPEND'])
+    else:
+        data['EXPEND'] = np.full(len(data['WAVELENGTH']), 0)
     if remove_negs:
         print('removing negatives from {}'.format(proxy_path))
         data = negs.make_clean_spectrum(data)
