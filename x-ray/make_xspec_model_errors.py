@@ -15,7 +15,7 @@ xtab = Table.read('mMEATS_xray_models.csv')
 hlsppath = '../draft_hlsp/'
 
 for x in xtab:
-    if x['Star'] == 'eps_Indi':
+    if x['Star'] == 'K2-141':
         n = 0
         fluxes = []
         while n < ntries:

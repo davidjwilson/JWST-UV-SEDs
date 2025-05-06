@@ -465,10 +465,10 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
                     data = bin1A.spectrum_to_const_res(data)
                 instrument_code, data = hst_instrument_column(data,  hdr)
                 instrument_list.append(instrument_code)
-                if grating != 'E140M':
-                    if norm:
-                        normfac = find_normfac(sed_table, specpath[0], np.concatenate((lya_range, other_airglow)), normfac) 
-                    update_norm(specpath[0], normfac)
+                # if grating != 'E140M':
+                    # if norm:
+                        # normfac = find_normfac(sed_table, specpath[0], np.concatenate((lya_range, other_airglow)), normfac) 
+                    # update_norm(specpath[0], normfac)
                 if grating == 'E140M':
                     uses_e140m = True
                     mask = (data['WAVELENGTH'] > 1160)
@@ -508,6 +508,8 @@ def add_stis_and_lya(sed_table, component_repo, lya_range, instrument_list, othe
 
             
                 if norm:
+                    normfac = hdr['NORMFAC']
+                    print('scaling {} by {}'.format(grating, normfac))
                     data['FLUX'] = data['FLUX'] * normfac
                     data['ERROR'] = data['ERROR'] * normfac
                 data = normfac_column(data, hdr)
