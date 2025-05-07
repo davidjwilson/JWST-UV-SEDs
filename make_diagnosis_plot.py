@@ -5,7 +5,7 @@ import os
 import glob
 
 # stars = os.listdir('draft_hlsp')
-stars = ['k2-141']
+stars = ['toi-178']
 
 for star in stars:
     seds = glob.glob('fixed_hlsp/{}/*multi*'.format(star))
@@ -40,3 +40,5 @@ for star in stars:
             plt.savefig('plots/diagnosis_plots/{}_check.pdf'.format(filename[:-5]))
     #         plt.show()
             plt.close()
+
+print('DONE')
