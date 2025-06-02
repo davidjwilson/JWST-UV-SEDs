@@ -647,7 +647,7 @@ def add_phoenix(sed_table, component_repo, instrument_list, to_1A=False, ranges 
     return sed_table, instrument_list
     
     
-def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False, trims={}):
+def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_apec = True, find_gap=True, to_1A=False, remove_negs=False, trims={}, just_apec=False):
     """
     Adds either a Chandra or and XMM spectrum and an APEC model. Can also return the gap that the EUV/DEM will fit into. Now does eROSITA
     """
@@ -662,29 +662,30 @@ def add_xray_spectrum(sed_table, component_repo, instrument_list, scope, add_ape
     cos_start = min(sed_table['WAVELENGTH']) #save the lowest wavelength on the table before we add anything to it
     xray_path = glob.glob(component_repo+'*'+scope+'*.fits')
     xray_end = 0
-    if len(xray_path) > 0:
-        print('adding an x-ray spectrum')
-        xray = Table(fits.getdata(xray_path[0], 1))
-        hdr = fits.getheader(xray_path[0], 0)
-        if remove_negs:
-            print('removing negatives from {}'.format(xray_path[0]))
-            xray = negs.make_clean_spectrum(xray)
-        if to_1A:
-            print('binning {}'.format(xray_path[0]))
-            xray = bin1A.spectrum_to_const_res(xray)
-        error = xray['ERROR'] #retain error and exptime 
-        exptime = xray['EXPTIME']
-        expstart = xray['EXPSTART']
-        expend = xray['EXPEND']
-        instrument_code, xray = fill_model(xray, instrument_name, hdr)
-        xray['ERROR'] = error
-        xray['EXPTIME'] = exptime
-        xray['EXPSTART'] = expstart 
-        xray['EXPEND'] = expend  
-        instrument_list.append(instrument_code)
-        #xray = normfac_column(xray)
-        xray_end = max(xray['WAVELENGTH'])
-        sed_table = vstack([sed_table, xray], metadata_conflicts = 'silent')
+    if not just_apec:
+        if len(xray_path) > 0:
+            print('adding an x-ray spectrum')
+            xray = Table(fits.getdata(xray_path[0], 1))
+            hdr = fits.getheader(xray_path[0], 0)
+            if remove_negs:
+                print('removing negatives from {}'.format(xray_path[0]))
+                xray = negs.make_clean_spectrum(xray)
+            if to_1A:
+                print('binning {}'.format(xray_path[0]))
+                xray = bin1A.spectrum_to_const_res(xray)
+            error = xray['ERROR'] #retain error and exptime 
+            exptime = xray['EXPTIME']
+            expstart = xray['EXPSTART']
+            expend = xray['EXPEND']
+            instrument_code, xray = fill_model(xray, instrument_name, hdr)
+            xray['ERROR'] = error
+            xray['EXPTIME'] = exptime
+            xray['EXPSTART'] = expstart 
+            xray['EXPEND'] = expend  
+            instrument_list.append(instrument_code)
+            #xray = normfac_column(xray)
+            xray_end = max(xray['WAVELENGTH'])
+            sed_table = vstack([sed_table, xray], metadata_conflicts = 'silent')
     if add_apec:
         apec_path = glob.glob(component_repo+'*apec*.fits')
         if len(apec_path) > 0:

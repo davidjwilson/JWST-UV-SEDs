@@ -13,14 +13,15 @@ cds.enable()
 
 
 """
-@verison: 4
+@verison: 5
 
 @author: David Wilson
 
-@date 20231017
+@date 20250601
 
 Turns XMM data in to HLSP format ecsv and fits files, ready to be added to an SED. MEATS version.
 v4 added RGS spectra
+v5 adding upper limits 
 """
 
 def wavelength_edges(w):
@@ -46,8 +47,11 @@ def apec_to_ecsv(data, hdr0, save_path):
     name = target+'apec.txt' 
     ascii.write(savedat, save_path+name, overwrite=True)
 
-def build_xmm_data(data, hdr0):
-    w, bins, f, e = data['Wave'], data['bin_width'], data['CFlux'], data['CFlux_err']
+def build_xmm_data(data, hdr0, uplims):
+    if uplims:
+        w, bins, f, e = data['Wave'], data['bin_width'], data['Flux_uplim'], np.full(len(data['Flux_uplim']), -1)
+    else:
+        w, bins, f, e = data['Wave'], data['bin_width'], data['CFlux'], data['CFlux_err']
     w0, w1 = w - (bins/2), w+(bins/2)
     exptime = np.full(len(w), hdr0['pn_DURATION'])
     start = np.full(len(w), (Time(hdr0['pn_DATE-OBS']).mjd))
@@ -231,7 +235,7 @@ def make_dataset_extension(hdr, pha_files = []):
     return hdu
     
     
-def make_xmm_spectra(xmm_path, savepath, version, hlsp, apec_repo='', make_apec=True, save_ecsv=False, save_fits=False, rgs=False, pha_files = []):
+def make_xmm_spectra(xmm_path, savepath, version, hlsp, apec_repo='', make_apec=True, save_ecsv=False, save_fits=False, rgs=False, pha_files = [], uplims=False):
     hdul = fits.open(xmm_path)
     hdr0 = hdul[0].header
     data = hdul[1].data
@@ -243,7 +247,7 @@ def make_xmm_spectra(xmm_path, savepath, version, hlsp, apec_repo='', make_apec=
         data = build_rgs_data(data, pha_meta)
         metadata = build_rgs_metadata(pha_meta, data, hlsp)
     else:
-        data = build_xmm_data(data, hdr0)
+        data = build_xmm_data(data, hdr0, uplims)
         metadata = build_xmm_metadata(hdr0, data, hlsp)
     if make_apec:
         apec_to_ecsv(apec_data, hdr0, apec_repo)
