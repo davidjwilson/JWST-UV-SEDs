@@ -6,10 +6,12 @@ import glob
 from astropy.table import Table
 from astropy.io import ascii
 import astropy.units as u
+import astropy.constants as const
 
 from scipy.interpolate import interpolate
 from astropy.units import cds
 from scipy import stats
+import math as mt
 from specutils import Spectrum1D
 from specutils.manipulation import FluxConservingResampler
 from astropy.nddata import StdDevUncertainty
